@@ -1,0 +1,913 @@
+{
+	"info": {
+		"_postman_id": "3e9ac362-8090-49c8-b89b-cdc2f2800fca",
+		"name": "e_commerce_backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49174715",
+		"_collection_link": "https://ertergaming088-1762500.postman.co/workspace/Emirhan's-Workspace~aa46d096-5346-4145-8f55-0d4b3a045ab9/collection/49174715-3e9ac362-8090-49c8-b89b-cdc2f2800fca?action=share&source=collection_link&creator=49174715"
+	},
+	"item": [
+		{
+			"name": "01 auth/users",
+			"item": [
+				{
+					"name": "yeni_kullanıcı",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Ahmet\",\r\n    \"lastName\": \"Yılmaz\",\r\n    \"username\": \"ahmettest\",\r\n    \"email\": \"ahmet@test.com\",\r\n    \"password\": \"Password123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "kullanıcı_login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"ahmettest\",\r\n    \"password\": \"Password123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "korumalı_endpoint_test",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTA4NjYzOSwiZXhwIjoxNzYxMDg3NTM5fQ.o9GcpihAb3tiWy_pCDzd6LqqIGOcho5Mz4VRb4LEJTk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "kullanıcı_listele",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "02 categories",
+			"item": [
+				{
+					"name": "kategori_oluştur",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Bilgisayar\",\r\n    \"slug\": \"bilgisayar\",\r\n    \"order\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"categories"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "03 products",
+			"item": [
+				{
+					"name": "ürün_oluştur",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Oyun Kasası\",\r\n    \"slug\": \"oyun-kasası-x123\",\r\n    \"shortDescription\": \"Güçlü oyun kasası.\",\r\n    \"longDescription\": \"Bu kasa, en yeni işlemciye ve ekran kartına sahiptir.\",\r\n    \"price\": 25000,\r\n    \"categoryId\": \"ebf38764-eef5-46d6-aba7-918fc47083c3\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ürün_listele",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Oyun Laptopu\",\r\n    \"slug\": \"oyun-laptopu-x123\",\r\n    \"shortDescription\": \"Güçlü oyun laptopu.\",\r\n    \"longDescription\": \"Bu laptop, en yeni işlemciye ve ekran kartına sahiptir.\",\r\n    \"price\": 35000,\r\n    \"categoryId\": \"ebf38764-eef5-46d6-aba7-918fc47083c3\"\r\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "04 product photos",
+			"item": [
+				{
+					"name": "fotoğraf_ekle",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"productId\": \"BURAYA_URUN_ID_YAPISTIRIN\",\r\n    \"url\": \"https://site.com/laptop-ana-resim.jpg\",\r\n    \"size\": 150000\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/product-photos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"product-photos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fotoğraf_ekle_2",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"productId\": \"BURAYA_URUN_ID_YAPISTIRIN\",\r\n    \"url\": \"https://site.com/laptop-klavye-resmi.jpg\",\r\n    \"size\": 120000\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/product-photos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"product-photos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fotoğraf_güncelle",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"productId\": \"BURAYA_URUN_ID_YAPISTIRIN\",\r\n    \"url\": \"https://site.com/laptop-klavye-resmi.jpg\",\r\n    \"size\": 120000\r\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/product-photos + fotoId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"product-photos + fotoId"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ürün_kontrol",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products + urunId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products + urunId"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fotoğraf_sil",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/product-photos + fotoId_1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"product-photos + fotoId_1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "05 comments",
+			"item": [
+				{
+					"name": "yorum_oluştur",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTA4NjYzOSwiZXhwIjoxNzYxMDg3NTM5fQ.o9GcpihAb3tiWy_pCDzd6LqqIGOcho5Mz4VRb4LEJTk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"productId\": \"BURAYA_URUN_ID_YAPISTIRIN\",\r\n    \"rating\": 5,\r\n    \"title\": \"Muazzam Cihaz\",\r\n    \"content\": \"Performansı beklediğimden çok daha iyi.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/comments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "yorum_kontrol",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products + urunId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products + urunId"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "yorum_güncelle",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTA4NjYzOSwiZXhwIjoxNzYxMDg3NTM5fQ.o9GcpihAb3tiWy_pCDzd6LqqIGOcho5Mz4VRb4LEJTk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"rating\": 3,\r\n    \"content\": \"Bataryası çok hızlı tükeniyor.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/comments + yorumId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"comments + yorumId"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "puan_kontrol",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "yorum_sil (yetkili)",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "ürün_kontrol (yorum)",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "06 auth/logout/refresh_token",
+			"item": [
+				{
+					"name": "refresh_token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"BURAYA_ILK_REFRESH_TOKEN_YAPISTIRIN\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "çıkış_yap",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"BURAYA_YENI_REFRESH_TOKEN_YAPISTIRIN\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout_test",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"BURAYA_YENI_REFRESH_TOKEN_YAPISTIRIN\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "çıkış_yap (all)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTA4NjYzOSwiZXhwIjoxNzYxMDg3NTM5fQ.o9GcpihAb3tiWy_pCDzd6LqqIGOcho5Mz4VRb4LEJTk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout-all",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout-all"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "07 product stocks",
+			"item": [
+				{
+					"name": "stok_güncelle",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"stockQuantity\": 10\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/products + urunId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products + urunId"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "08 cart system",
+			"item": [
+				{
+					"name": "sepete_ürün_ekle",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTE0MzA3MSwiZXhwIjoxNzYxMTQzOTcxfQ.xHcJ5tHa7sHZfvZpWnNNA4SDPJQvQOMcldfM-5hi5wQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"productId\": \"BURAYA_stokluUrunId_YAPIŞTIR\", \"quantity\": 3 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cart-items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"cart-items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "miktar_arttır",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTE0MzA3MSwiZXhwIjoxNzYxMTQzOTcxfQ.xHcJ5tHa7sHZfvZpWnNNA4SDPJQvQOMcldfM-5hi5wQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"productId\": \"BURAYA_stokluUrunId_YAPIŞTIR\", \"quantity\": 2 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cart-items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"cart-items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "stok_sınır_aşımı",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTE0MzA3MSwiZXhwIjoxNzYxMTQzOTcxfQ.xHcJ5tHa7sHZfvZpWnNNA4SDPJQvQOMcldfM-5hi5wQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"productId\": \"BURAYA_stokluUrunId_YAPIŞTIR\", \"quantity\": 10 }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cart-items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"cart-items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "sepet_listele",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "09 transaction",
+			"item": [
+				{
+					"name": "sipariş_oluştur",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTE0MzA3MSwiZXhwIjoxNzYxMTQzOTcxfQ.xHcJ5tHa7sHZfvZpWnNNA4SDPJQvQOMcldfM-5hi5wQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "stok_kontrol",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products + stokluUrunId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products + stokluUrunId"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "sepet_kontrol",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "sipariş_durum_güncelle",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTQ5ZTE3NS03ZDcyLTQ0ZjUtODRhOC02ZDM2NzY5YWFlMTEiLCJ1c2VybmFtZSI6ImFobWV0dGVzdCIsImlhdCI6MTc2MTE0MzA3MSwiZXhwIjoxNzYxMTQzOTcxfQ.xHcJ5tHa7sHZfvZpWnNNA4SDPJQvQOMcldfM-5hi5wQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"status\": \"SHIPPED\" }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/orders/ + siparisId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								" + siparisId"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "10 filter/sort",
+			"item": [
+				{
+					"name": "fiyat_sırala_ucuz",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products?sort=price:asc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							],
+							"query": [
+								{
+									"key": "sort",
+									"value": "price:asc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fiyat_filtrele",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products?min_price=100&max_price=5000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							],
+							"query": [
+								{
+									"key": "min_price",
+									"value": "100"
+								},
+								{
+									"key": "max_price",
+									"value": "5000"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": ""
+		}
+	]
+}
