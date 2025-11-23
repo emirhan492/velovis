@@ -1,4 +1,5 @@
 import {
+  IsArray, // <-- Yeni eklendi
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -29,12 +30,23 @@ export class CreateProductDto {
   @Min(0)
   price: number;
 
-  @IsUUID() // Kategori ID'sinin bir UUID olması zorunlu
+  @IsUUID()
   @IsNotEmpty()
   categoryId: string;
 
   @IsInt()
   @Min(0)
-  @IsOptional()  // Opsiyonel (eğer gönderilmezse schema'daki default(0) çalışır)
+  @IsOptional()
   stockQuantity?: number;
+
+  // 👇 YENİ EKLENEN: Ana Fotoğraf URL'si
+  @IsString()
+  @IsOptional()
+  primaryPhotoUrl?: string;
+
+  // 👇 YENİ EKLENEN: Diğer Fotoğraflar (Dizi Halinde)
+  @IsOptional()
+  @IsArray() // Bunun bir liste (array) olduğunu belirtir
+  @IsString({ each: true }) // Listenin içindeki her bir elemanın String olması gerektiğini belirtir
+  otherPhotos?: string[];
 }

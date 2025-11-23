@@ -4,72 +4,60 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
-  Post, // Eklendi
-  Body, // Eklendi
-  HttpCode, // Eklendi
-  HttpStatus, // Eklendi
+  Body,
+  Patch,
   Delete,
-  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from 'src/authorization/guards/permissions.guard';
 import { CheckPermissions } from 'src/authorization/decorators/check-permissions.decorator';
 import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
-import { RolesService } from 'src/roles/roles.service'; // Eklendi: RolesService'e ihtiyacımız var
-import { AssignRolesDto } from 'src/roles/dto/assign-roles.dto'; // Eklendi: DTO'ya ihtiyacımız var
-
-interface RequestWithUser extends Request {
-  user: {
-    id: string; // JwtStrategy'miz 'sub' değil 'id' yolluyordu (en son)
-    permissions: Set<string>;
-  };
-}
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly rolesService: RolesService, // 1. RolesService'i enjekte et
   ) {}
 
+  // 1. TÜM KULLANICILARI LİSTELE
   @CheckPermissions(PERMISSIONS.USERS.READ)
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
+  // 2. TEK KULLANICI DETAYI
   @CheckPermissions(PERMISSIONS.USERS.READ)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
+    // Eğer service'inde findOne yoksa, findAll içinden filtreleyebilir 
+    // veya service'e findOne ekleyebilirsin.
+    // Şimdilik findAll kullanıldığı için burası opsiyonel.
+    return { message: 'Bu endpoint henüz aktif değil, listeden bakınız.' };
   }
 
   // =================================================================
-  // YENİ: KULLANICIYA ROL ATAMA/GÜNCELLEME
+  // KULLANICI ROL GÜNCELLEME (Frontend ile uyumlu)
   // =================================================================
   @CheckPermissions(PERMISSIONS.USERS.ASSIGN_ROLE)
-  @Post(':id/roles') // /api/users/uuid-of-user/roles
-  @HttpCode(HttpStatus.OK)
-  assignRoles(
+  @Patch(':id/roles') // Frontend api.patch('/users/:id/roles') atıyor
+  async updateRoles(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() assignRolesDto: AssignRolesDto,
+    @Body() body: { roles: string[] }, // Frontend { roles: [...] } gönderiyor
   ) {
-    // 2. RolesService'teki fonksiyonu burada kullan
-    return this.rolesService.assignRolesToUser(id, assignRolesDto);
+    // UsersService içindeki mantığı çağırıyoruz
+    return this.usersService.updateRoles(id, body.roles);
   }
 
   // =================================================================
-  // YENİ: KULLANICI SİLME ENDPOINT'İ
+  // KULLANICI SİLME
   // =================================================================
   @CheckPermissions(PERMISSIONS.USERS.DELETE)
-  @Delete(':id') // /api/users/uuid-of-user-to-delete
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: RequestWithUser, // 3. req'i al (kendini silmesin diye)
-  ) {
-    const currentUserId = req.user.id;
-    return this.usersService.remove(id, currentUserId);
+  @Delete(':id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    // DİKKAT: req.user.id yerine parametreden gelen 'id'yi siliyoruz.
+    return this.usersService.remove(id);
   }
 }

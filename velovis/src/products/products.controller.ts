@@ -11,6 +11,7 @@ import {
   ParseUUIDPipe,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -62,5 +63,39 @@ export class ProductsController {
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
+  }
+
+  // YORUMLAR
+
+  @UseGuards(JwtAuthGuard) // Sadece giriş yapmış kullanıcı yorum yapabilir
+  @Post(':id/comments')
+  async addComment(
+    @Param('id') id: string,
+    @Body() body: { rating: number; content: string }, // Basitçe body'yi alıyoruz
+    @Req() req: any,
+  ) {
+    // Kullanıcı ID'sini (req.user.id) servise gönderiyoruz
+    return this.productsService.addComment(req.user.id, id, body);
+  }
+
+  // YORUM SİLME (Kullanıcı kendisininkini, Admin hepsini)
+  @UseGuards(JwtAuthGuard)
+  @Delete('comments/:commentId')
+  async deleteComment(
+    @Param('commentId') commentId: string,
+    @Req() req: any,
+  ) {
+    return this.productsService.deleteComment(req.user, commentId);
+  }
+
+  // YORUM DÜZENLEME (Kullanıcı kendisininkini, Admin hepsini)
+  @UseGuards(JwtAuthGuard)
+  @Patch('comments/:commentId')
+  async updateComment(
+    @Param('commentId') commentId: string,
+    @Body() body: { content: string; rating: number },
+    @Req() req: any,
+  ) {
+    return this.productsService.updateComment(req.user, commentId, body);
   }
 }

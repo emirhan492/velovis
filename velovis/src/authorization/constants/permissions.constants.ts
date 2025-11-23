@@ -56,7 +56,9 @@ export const PERMISSIONS = {
     CREATE_OWN: 'orders:create:own',
     READ_OWN: 'orders:read:own',
     READ_ANY: 'orders:read:any', // Admin yetkisi
-    UPDATE_ANY: 'orders:update:any', // Admin (sipariş durumunu güncelleme)
+    UPDATE_ANY: 'orders:update:any',
+    CREATE: 'orders:create', // Admin (sipariş durumunu güncelleme)
+    UPDATE_OWN: 'orders:update:own',
   },
 } as const; // 'as const' ile bu objenin "read-only" olmasını sağlıyoruz.
 

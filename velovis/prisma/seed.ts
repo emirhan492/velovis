@@ -1,135 +1,176 @@
+// prisma/seed.ts
+
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-// 'permissions.constants.ts' dosyasının doğru yolunu belirtmemiz gerek
-// 'prisma/seed.ts' dosyasındayız, yani '../src/'
-import { PERMISSIONS } from '../src/authorization/constants/permissions.constants';
 
 const prisma = new PrismaClient();
 
-/**
- * Sistemdeki tüm sabit (hardcoded) yetki anahtarlarını
- * ['products:create', 'users:read', ...] formatında düz bir diziye çevirir.
- */
-function getAllPermissions(): string[] {
-  const permissions: string[] = [];
-  Object.values(PERMISSIONS).forEach((resource) => {
-    Object.values(resource).forEach((permissionKey) => {
-      permissions.push(permissionKey);
-    });
-  });
-  return permissions;
-}
-
-/**
- * Ana Tohumlama Fonksiyonu
- */
 async function main() {
-  console.log('Tohumlama (seeding) basliyor...');
+  console.log('🌱 Tohumlama (seeding) işlemi başlıyor...');
 
-  const allPermissions = getAllPermissions();
-  console.log(`Toplam ${allPermissions.length} adet yetki bulundu.`);
+  // ----------------------------------------------------------------
+  // 1. TEMİZLİK (HER ŞEYİ SİL)
+  // ----------------------------------------------------------------
+  console.log('🧹 Eski veriler temizleniyor...');
+  // İlişki sırasına göre silme işlemi (Hata almamak için)
+  await prisma.orderItem.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.productComment.deleteMany();
+  await prisma.productPhoto.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.product.deleteMany();
 
-  // 1. "SÜPER ADMIN" ROLÜNÜ OLUŞTUR
-  // ve bu role sistemdeki TÜM yetkileri ata
+  await prisma.userRole.deleteMany();
+  await prisma.rolePermission.deleteMany();
+
+  // Kategorileri ve Rolleri/Kullanıcıları en son siliyoruz
+  await prisma.category.deleteMany();
+  await prisma.role.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.refreshToken.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+
+  console.log('🧹 Temizlik tamamlandı. Veritabanı tertemiz.');
+
+  // ----------------------------------------------------------------
+  // 2. YETKİ LİSTESİ (Sistemin çalışması için gerekli)
+  // ----------------------------------------------------------------
+  const permissionsList = [
+    'users:create',
+    'users:read',
+    'users:update',
+    'users:delete',
+    'roles:create',
+    'roles:read',
+    'roles:update',
+    'roles:delete',
+    'permissions:read',
+    'products:create',
+    'products:read',
+    'products:update',
+    'products:delete',
+    'categories:create',
+    'categories:read',
+    'categories:update',
+    'categories:delete',
+    'orders:read',
+    'orders:update',
+    'comments:create',
+    'comments:read',
+    'comments:update',
+    'comments:delete',
+    'carts:read:own',
+    'carts:update:own',
+    'orders:create:own',
+    'orders:read:own',
+    'comments:update:own',
+    'comments:delete:own',
+    'comments:delete:any',
+    'orders:read:any',
+    'orders:update:any',
+    'product_photos:create',
+    'product_photos:update',
+    'product_photos:delete',
+    'users:assign_role',
+  ];
+
+  // ----------------------------------------------------------------
+  // 3. ROLLERİ OLUŞTUR
+  // ----------------------------------------------------------------
+  console.log('🔨 Roller oluşturuluyor...');
+
+  // USER Rolü için kısıtlı yetkiler
+  const userPermissionsList = [
+    'carts:read:own',
+    'carts:update:own',
+    'orders:create:own',
+    'orders:update:own',
+    'orders:read:own',
+    'comments:create',
+    'comments:read',
+    'comments:update:own',
+    'comments:delete:own',
+  ];
 
   const adminRole = await prisma.role.create({
     data: {
       name: 'ADMIN',
       permissions: {
-        createMany: {
-          data: allPermissions.map((key) => ({ permissionKey: key })),
-        },
+        create: permissionsList.map((key) => ({ permissionKey: key })),
       },
     },
-    include: {
-      permissions: true,
-    },
   });
-  console.log(
-    `'ADMIN' rolu olusturuldu ve ${adminRole.permissions.length} yetki atandi.`,
-  );
 
-  // 2. "USER" ROLÜNÜ OLUŞTUR
-  // ve bu role sadece 'kendi' (own) yetkilerini ata
-  await prisma.role.create({
+  const userRole = await prisma.role.create({
     data: {
       name: 'USER',
       permissions: {
-        createMany: {
-          data: [
-            { permissionKey: PERMISSIONS.COMMENTS.CREATE },
-            { permissionKey: PERMISSIONS.COMMENTS.UPDATE_OWN },
-            { permissionKey: PERMISSIONS.COMMENTS.DELETE_OWN },
-            { permissionKey: PERMISSIONS.CARTS.READ_OWN },
-            { permissionKey: PERMISSIONS.CARTS.UPDATE_OWN },
-            { permissionKey: PERMISSIONS.ORDERS.CREATE_OWN },
-            { permissionKey: PERMISSIONS.ORDERS.READ_OWN },
-          ],
-        },
+        create: userPermissionsList.map((key) => ({ permissionKey: key })),
       },
     },
   });
-  console.log(`'USER' rolu olusturuldu ve temel yetkiler atandi.`);
 
-  // 3. "SÜPER ADMIN" TEST KULLANICISINI OLUŞTUR
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  // ----------------------------------------------------------------
+  // 4. ADMIN HESABI OLUŞTUR
+  // ----------------------------------------------------------------
+  console.log('🔨 Admin hesabı oluşturuluyor...');
+  const salt = await bcrypt.genSalt(10);
+  // Şifre: Admin123!
+  const hashedPassword = await bcrypt.hash('Admin123!', salt);
+
   const adminUser = await prisma.user.create({
     data: {
       firstName: 'Emirhan',
       lastName: 'Çelik',
-      fullName: 'Emirhan Çelik',
       username: 'admin',
-      email: 'admin@velovis.com',
-      password: hashedPassword,
-      // Bu kullanıcıyı 'ADMIN' rolüne bağla
-      roles: {
-        create: [
-          {
-            roleId: adminRole.id,
-          },
-        ],
-      },
+      email: 'veloviswear1@gmail.com',
+      hashedPassword: hashedPassword,
+      isActive: true,
+      fullName: 'Admin', // Trigger beklemeden dolduralım
     },
   });
-  console.log(
-    `'${adminUser.username}' (Sifre: Password123) super admin kullanicisi olusturuldu.`,
-  );
 
-  // 4. (İsteğe bağlı) TEST ÜRÜNLERİ OLUŞTUR
-  const testCategory = await prisma.category.create({
+  // Admin kullanıcısına ADMIN ve USER rollerini ata
+  await prisma.userRole.create({
+    data: { userId: adminUser.id, roleId: adminRole.id },
+  });
+  await prisma.userRole.create({
+    data: { userId: adminUser.id, roleId: userRole.id },
+  });
+
+  console.log('✨ Admin hesabı oluşturuldu:');
+  console.log('   Kullanıcı Adı: admin');
+  console.log('   Şifre: Admin123!');
+
+  // ----------------------------------------------------------------
+  // 5. KATEGORİ (ALTYAPI İÇİN GEREKLİ)
+  // ----------------------------------------------------------------
+  // Ürün ekleme formunda kategori seçimi zorunlu olduğu için
+  // en az 1 tane kategori bırakıyoruz.
+  console.log('🔨 Altyapı kategorisi oluşturuluyor...');
+
+  await prisma.category.create({
     data: {
-      name: 'Test Kategorisi',
-      slug: 'test-kategorisi',
+      name: 'Ceketler',
+      slug: 'ceketler',
       order: 1,
     },
   });
 
-  await prisma.product.create({
-    data: {
-      name: 'Ornek Laptop',
-      slug: 'ornek-laptop',
-      shortDescription: 'Tohumlamadan gelen test urunu.',
-      longDescription:
-        'Tohumlama (seeding) islemi tarafindan otomatik olarak olusturulmustur.',
-      price: 15000,
-      stockQuantity: 50, // Stok ekledik
-      categoryId: testCategory.id,
-    },
-  });
-  console.log('Test kategorisi ve test urunu olusturuldu.');
-
-  console.log('Tohumlama (seeding) basariyla tamamlandi.');
+  console.log(
+    '✅ Kurulum tamamlandı! Artık Admin Paneli üzerinden ürün ekleyebilirsin.',
+  );
 }
 
-// =================================================================
+// ----------------------------------------------------------------
 // ÇALIŞTIRMA
-// =================================================================
+// ----------------------------------------------------------------
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    // Prisma Client bağlantısını düzgünce kapat
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('❌ Hata oluştu:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

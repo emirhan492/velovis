@@ -1,4 +1,6 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+// Dosya Yolu: velovis/src/auth/dto/reset-password.dto.ts
+
+import { IsString, IsNotEmpty, MinLength, Matches } from 'class-validator';
 
 export class ResetPasswordDto {
   @IsString()
@@ -6,7 +8,10 @@ export class ResetPasswordDto {
   token: string;
 
   @IsString()
-  @IsNotEmpty()
-  @MinLength(8, { message: 'Yeni parola en az 8 karakter olmalıdır.' })
+  @MinLength(8, { message: 'Şifre en az 8 karakter olmalıdır.' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message:
+      'Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.',
+  })
   newPassword: string;
 }

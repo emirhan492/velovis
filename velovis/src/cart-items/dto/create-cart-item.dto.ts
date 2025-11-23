@@ -8,4 +8,5 @@ export class CreateCartItemDto {
   @IsInt()
   @Min(1) // Sepete en az 1 ürün eklenebilir
   quantity: number;
+  size?: string;
 }

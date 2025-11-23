@@ -20,6 +20,7 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+  REFUNDED
 }
 
 // =================================================================
@@ -32,12 +33,13 @@ model User {
   id        String   @id @default(uuid())
   firstName String
   lastName  String
-  fullName  String // Trigger ile dolacak
+  fullName  String   // Trigger ile dolacak
   username  String   @unique
   email     String   @unique
-  password  String
+  hashedPassword  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(false)
 
   // İlişkiler
   comments            ProductComment[]
@@ -46,6 +48,8 @@ model User {
   orders              Order[]
   passwordResetTokens PasswordResetToken[]
   roles               UserRole[]
+
+  hashedRefreshToken String?
 
   @@map("users")
 }
@@ -117,6 +121,7 @@ model ProductComment {
   rating  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  editedByAdmin Boolean @default(false)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -145,6 +150,7 @@ model CartItem {
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  size      String?
 
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -152,7 +158,7 @@ model CartItem {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, size])
   @@map("cart_items")
 }
 
@@ -166,6 +172,8 @@ model Order {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  paymentId String?
 
   items OrderItem[]
 
@@ -210,6 +218,7 @@ model Role {
   users       UserRole[]
   permissions RolePermission[]
 
+
   @@map("roles")
 }
 
@@ -217,6 +226,7 @@ model Role {
 model RolePermission {
   roleId         String
   permissionKey  String
+  message        String?
   
   role           Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 

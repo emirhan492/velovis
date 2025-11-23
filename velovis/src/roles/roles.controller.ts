@@ -74,4 +74,18 @@ export class RolesController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.rolesService.remove(id);
   }
+
+  // =================================================================
+  // YETKİ GÜNCELLEME
+  // =================================================================
+  
+  @CheckPermissions(PERMISSIONS.ROLES.UPDATE)
+  @Patch(':id/permissions')
+  async updatePermissions(
+    @Param('id') id: string,
+    @Body() body: { permissions: string[] }, // Frontend'den gelen { permissions: [...] } verisi
+  ) {
+    return this.rolesService.updatePermissions(id, body.permissions);
+  }
+  // 👆 ------------------------------------------------- 👆
 }

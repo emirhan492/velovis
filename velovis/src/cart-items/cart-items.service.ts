@@ -29,7 +29,8 @@ export class CartItemsService {
   // SEPETE ÜRÜN EKLEME (veya MİKTAR GÜNCELLEME)
   // =================================================================
   async addOrUpdateItem(userId: string, createCartItemDto: CreateCartItemDto) {
-    const { productId, quantity } = createCartItemDto;
+    // 👇 'size' bilgisini DTO'dan alıyoruz
+    const { productId, quantity, size } = createCartItemDto;
 
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -39,22 +40,25 @@ export class CartItemsService {
       throw new NotFoundException('Ürün bulunamadı.');
     }
 
+    // 👇 ARTIK BEDEN İLE BİRLİKTE KONTROL EDİYORUZ
     const existingCartItem = await this.prisma.cartItem.findUnique({
       where: {
-        userId_productId: {
+        userId_productId_size: {
+          // <-- Prisma şemadaki unique constraint ismi
           userId: userId,
           productId: productId,
+          size: size || '', // Eğer beden yoksa boş string
         },
       },
     });
 
     if (existingCartItem) {
-      // 3. ÜRÜN ZATEN SEPETTE VARSA -> MİKTARI GÜNCELLE
+      // 3. ÜRÜN (AYNI BEDEN) ZATEN SEPETTE VARSA -> MİKTARI GÜNCELLE
       const newQuantity = existingCartItem.quantity + quantity;
 
       if (newQuantity > product.stockQuantity) {
-        // (Akıllı hata mesajları...)
-        const availableToAdd = product.stockQuantity - existingCartItem.quantity;
+        const availableToAdd =
+          product.stockQuantity - existingCartItem.quantity;
         const message =
           availableToAdd > 0
             ? `Stokta yeterli ürün yok. Sepetinize en fazla ${availableToAdd} adet daha ekleyebilirsiniz.`
@@ -65,10 +69,10 @@ export class CartItemsService {
       return this.prisma.cartItem.update({
         where: { id: existingCartItem.id },
         data: { quantity: newQuantity },
-        include: includeProductDetails, // <-- ÇÖZÜM 1: Buraya ekle
+        include: includeProductDetails,
       });
     } else {
-      // 4. ÜRÜN SEPETTE YOKSA -> YENİ KAYIT OLUŞTUR
+      // 4. ÜRÜN (BU BEDENDE) SEPETTE YOKSA -> YENİ KAYIT OLUŞTUR
       if (quantity > product.stockQuantity) {
         throw new BadRequestException(
           `Stokta yeterli ürün yok. Bu üründen en fazla ${product.stockQuantity} adet ekleyebilirsiniz.`,
@@ -80,8 +84,9 @@ export class CartItemsService {
           userId: userId,
           productId: productId,
           quantity: quantity,
+          size: size, // 👇 Beden bilgisini kaydediyoruz
         },
-        include: includeProductDetails, // <-- ÇÖZÜM 2: Buraya da ekle
+        include: includeProductDetails,
       });
     }
   }
@@ -92,7 +97,7 @@ export class CartItemsService {
   async findAll(userId: string) {
     return this.prisma.cartItem.findMany({
       where: { userId: userId },
-      include: includeProductDetails, // (Burada zaten vardı)
+      include: includeProductDetails,
       orderBy: {
         createdAt: 'desc',
       },
@@ -137,7 +142,7 @@ export class CartItemsService {
     return this.prisma.cartItem.update({
       where: { id: cartItemId },
       data: { quantity: newQuantity },
-      include: includeProductDetails, // <-- ÇÖZUM 3: VE ASIL HATA BURADAYDI
+      include: includeProductDetails,
     });
   }
 

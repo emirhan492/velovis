@@ -22,15 +22,9 @@ import { PermissionsGuard } from 'src/authorization/guards/permissions.guard';
 import { CheckPermissions } from 'src/authorization/decorators/check-permissions.decorator';
 import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
 import { Request } from 'express';
+import type { RequestWithUser } from '../types/auth-request.type';
 
 // req.user tipini tanımlıyoruz
-interface RequestWithUser extends Request {
-  user: {
-    id: string;
-    permissions: Set<string>;
-    // ... (JwtStrategy'den gelen diğer alanlar)
-  };
-}
 
 @UseGuards(JwtAuthGuard, PermissionsGuard) // Bütün controller'ı koru
 @Controller('cart-items')

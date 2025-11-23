@@ -9,6 +9,8 @@ import {
   HttpStatus,
   ForbiddenException,
   Patch, // Şifre değiştirme için
+  Query,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +21,9 @@ import { Request } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto'; // Şifremi unuttum için
 import { ResetPasswordDto } from './dto/reset-password.dto'; // Şifre sıfırlama için
+import { type Response } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { Public } from 'src/authorization/decorators/check-permissions.decorator';
 
 // =================================================================
 // TİP TANIMLAMALARI
@@ -48,7 +53,10 @@ interface RequestWithRefreshUser extends Request {
 
 @Controller('auth') // Tüm endpoint'ler /api/auth altında
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   // =================================================================
   // AŞAMA 1 ENDPOINT'LERİ (TEMEL AUTH)
@@ -144,5 +152,31 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  // =================================================================
+  // HESAP AKTIVASYON (Linkten Gelen)
+  // =================================================================
+
+  @Public() // Herkesin erişebilmesi gerekir
+  @Get('activate') // HTTP GET isteği
+  @HttpCode(HttpStatus.OK)
+  async activateAccount(
+    @Query('token') token: string, // URL'den token'ı al (örn: ...?token=abc)
+    // @Res() res: Response, // <- SİLİNDİ
+  ) {
+    // 1. Servisi çağır.
+    // Bu servis, token geçersizse veya bir hata olursa
+    // (NotFoundException, ConflictException vb.) HATA FIRLATMALIDIR.
+    await this.authService.activateAccount(token);
+
+    // 2. Hata fırlatılmazsa, NestJS'in otomatik olarak JSON
+    // yanıtı göndermesini sağla. Frontend bu yanıtı bekliyor.
+    return {
+      success: true,
+      message: 'Hesap başarıyla aktifleştirildi.',
+    };
+
+    // --- YÖNLENDİRME YAPAN TÜM try...catch BLOĞU SİLİNDİ ---
   }
 }

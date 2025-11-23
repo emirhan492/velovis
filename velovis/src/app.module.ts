@@ -17,6 +17,7 @@ import { RolesModule } from './roles/roles.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { join } from 'path';
       }),
       inject: [ConfigService], // ConfigService'i 'useFactory' içine enjekte et
     }),
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
