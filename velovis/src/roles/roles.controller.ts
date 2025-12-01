@@ -19,14 +19,13 @@ import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 
-// Bu controller'daki tüm endpoint'ler Admin yetkisi gerektirecek
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('roles') // Endpoint: /api/roles
+@Controller('roles')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   // =================================================================
-  // YARDIMCI: Sistemdeki tüm sabit (hardcoded) yetkileri listele
+  // Sistemdeki tüm sabit (hardcoded) yetkileri listele
   // =================================================================
   @CheckPermissions(PERMISSIONS.ROLES.READ)
   @Get('permissions')
@@ -35,7 +34,7 @@ export class RolesController {
   }
 
   // =================================================================
-  // YENİ ROL OLUŞTURMA (Örn: "MODERATOR")
+  // YENİ ROL OLUŞTURMA
   // =================================================================
   @CheckPermissions(PERMISSIONS.ROLES.CREATE)
   @Post()
@@ -57,7 +56,7 @@ export class RolesController {
   // BİR ROLE YETKİ ATAMA/GÜNCELLEME
   // =================================================================
   @CheckPermissions(PERMISSIONS.ROLES.UPDATE)
-  @Post(':id/permissions') // /api/roles/uuid-of-admin/permissions
+  @Post(':id/permissions')
   @HttpCode(HttpStatus.OK)
   assignPermissions(
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,7 +69,7 @@ export class RolesController {
   // BİR ROLÜ SİLME
   // =================================================================
   @CheckPermissions(PERMISSIONS.ROLES.DELETE)
-  @Delete(':id') // /api/roles/uuid-of-moderator
+  @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.rolesService.remove(id);
   }
@@ -78,14 +77,13 @@ export class RolesController {
   // =================================================================
   // YETKİ GÜNCELLEME
   // =================================================================
-  
+
   @CheckPermissions(PERMISSIONS.ROLES.UPDATE)
   @Patch(':id/permissions')
   async updatePermissions(
     @Param('id') id: string,
-    @Body() body: { permissions: string[] }, // Frontend'den gelen { permissions: [...] } verisi
+    @Body() body: { permissions: string[] },
   ) {
     return this.rolesService.updatePermissions(id, body.permissions);
   }
-  // 👆 ------------------------------------------------- 👆
 }

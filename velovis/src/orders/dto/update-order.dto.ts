@@ -3,6 +3,6 @@ import { OrderStatus } from '@prisma/client';
 
 export class UpdateOrderDto {
   @IsNotEmpty()
-  @IsEnum(OrderStatus) // Değerin PENDING, PAID, SHIPPED vb. olmasını zorunlu kılar
+  @IsEnum(OrderStatus)
   status: OrderStatus;
 }

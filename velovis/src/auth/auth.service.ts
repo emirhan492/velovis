@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 
 import {
   ConflictException,
@@ -34,10 +33,9 @@ export class AuthService {
 
   // =================================================================
   // REGISTER (Kayıt Ol)
-  // DÜZELTME: 'fullName' alanı eklendi.
   // =================================================================
   async register(registerDto: RegisterDto) {
-    // 1. E-posta kontrolü
+    // E-posta kontrolü
     const existingUser = await this.prisma.user.findUnique({
       where: { email: registerDto.email },
     });
@@ -46,7 +44,7 @@ export class AuthService {
       throw new BadRequestException('Bu e-posta adresi zaten kullanılıyor.');
     }
 
-    // 2. Varsayılan 'USER' rolünü bul
+    // Varsayılan 'USER' rolünü bul
     const userRole = await this.prisma.role.findUnique({
       where: { name: 'USER' },
     });
@@ -57,17 +55,15 @@ export class AuthService {
       );
     }
 
-    // 3. Şifre Hash'leme
+    // Şifre Hash'leme
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // 4. Kullanıcıyı oluştur
+    // Kullanıcıyı oluştur
     const newUser = await this.prisma.user.create({
       data: {
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
-        // 👇 HATA ÇÖZÜMÜ: fullName alanını burada oluşturuyoruz 👇
         fullName: `${registerDto.firstName} ${registerDto.lastName}`,
-        // -------------------------------------------------------
         email: registerDto.email,
         username: registerDto.username || registerDto.email.split('@')[0],
         hashedPassword: hashedPassword,

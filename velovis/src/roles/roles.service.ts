@@ -3,7 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  ForbiddenException, // Eksikse eklendi
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -17,7 +17,7 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   // =================================================================
-  // YARDIMCI FONKSİYON: Tüm Sabit Yetkileri Listele
+  // Tüm Sabit Yetkileri Listele
   // =================================================================
   getAllPermissions() {
     const permissions: string[] = [];
@@ -110,10 +110,10 @@ export class RolesService {
         include: { permissions: true },
       });
     });
-  } // <-- EKSİK OLAN PARANTEZ BÜYÜK İHTİMALLE BUYDU
+  }
 
   // =================================================================
-  // ROL SİLME (YENİ EKLENEN FONKSİYON)
+  // ROL SİLME
   // =================================================================
   async remove(id: string) {
     const role = await this.prisma.role.findUnique({ where: { id } });
@@ -132,10 +132,10 @@ export class RolesService {
     } catch (error) {
       throw new InternalServerErrorException('Rol silinirken bir hata oluştu.');
     }
-  } // <-- YENİ FONKSİYONUN KAPANIŞ PARANTEZİ
+  }
 
   // =================================================================
-  // BİR KULLANICIYA ROL ATAMA (HATA ALDIĞIN YER)
+  // BİR KULLANICIYA ROL ATAMA
   // =================================================================
   async assignRolesToUser(userId: string, assignRolesDto: AssignRolesDto) {
     const { roleIds } = assignRolesDto;
@@ -182,36 +182,25 @@ export class RolesService {
         },
       });
     });
-  } // <-- assignRolesToUser FONKSİYONUNUN KAPANIŞ PARANTEZİ
+  }
 
   // =================================================================
   // YETKİ GÜNCELLEME
   // =================================================================
 
   async updatePermissions(roleId: string, permissionKeys: string[]) {
-    // 1. Rol var mı kontrol et
     const role = await this.prisma.role.findUnique({ where: { id: roleId } });
     if (!role) throw new NotFoundException('Rol bulunamadı.');
 
-    // ADMIN rolünün yetkileriyle oynanmasını engelleyelim (Güvenlik için)
     if (role.name === 'ADMIN') {
-      // İstersen buna izin verebilirsin ama Admin'in kendini kilitlememesi için genelde engellenir.
-      // Şimdilik izin verelim ama dikkatli olunmalı.
     }
 
-    // 2. Transaction (İşlem Bütünlüğü) ile güncelleme yap
-    // Önce eskileri sil, sonra yenileri ekle.
     return await this.prisma.$transaction(async (tx) => {
-      // A. Mevcut yetkileri temizle
       await tx.rolePermission.deleteMany({
         where: { roleId: roleId },
       });
 
-      // B. Yeni yetkileri ekle
       if (permissionKeys.length > 0) {
-        // permissionKey'lerin geçerli olup olmadığını kontrol edebiliriz ama
-        // şimdilik frontend'den doğru geldiğini varsayıyoruz.
-
         const data = permissionKeys.map((key) => ({
           roleId: roleId,
           permissionKey: key,
@@ -222,7 +211,6 @@ export class RolesService {
         });
       }
 
-      // C. Güncel rolü döndür
       return tx.role.findUnique({
         where: { id: roleId },
         include: { permissions: true },

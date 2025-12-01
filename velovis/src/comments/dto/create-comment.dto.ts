@@ -19,8 +19,7 @@ export class CreateCommentDto {
   @Max(5)
   rating: number; // Değerlendirme (1-5 arası yıldız)
 
-  // Plandaki kural: (İçerik varsa, Başlık zorunludur)
-  // Yani, 'content' alanı null veya undefined değilse, 'title' alanı @IsNotEmpty kontrolünden geçmelidir.
+
   @ValidateIf((o) => o.content !== null && o.content !== undefined)
   @IsString()
   @IsNotEmpty({ message: 'İçerik varsa, başlık zorunlu olmalıdır.' })

@@ -1,5 +1,3 @@
-// src/comments/comments.service.ts
-
 import {
   ForbiddenException,
   Injectable,
@@ -9,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Prisma, PrismaClient } from '@prisma/client';
-import { PERMISSIONS } from 'src/authorization/constants/permissions.constants'; // Yetki listesini import et
+import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
 
 // req.user objesinin tipini tanımla
 type AuthenticatedUser = {
@@ -17,7 +15,6 @@ type AuthenticatedUser = {
   permissions: Set<string>;
 };
 
-// ... (PrismaTransactionClient tipi) ...
 type PrismaTransactionClient = Omit<
   PrismaClient,
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
@@ -27,35 +24,34 @@ type PrismaTransactionClient = Omit<
 export class CommentsService {
   constructor(private prisma: PrismaService) {}
 
-  // ... (updateProductStats, create, findAll, findOne fonksiyonları aynı) ...
   private async updateProductStats(
     productId: string,
     tx: PrismaTransactionClient,
   ) {
-    // ... (içerik aynı)
+
   }
 
   async create(createCommentDto: CreateCommentDto, userId: string) {
-    // ... (içerik aynı)
+
   }
 
   async findAll(productId?: string, rating?: number) {
-    // ... (içerik aynı)
+
   }
 
   async findOne(id: string) {
-    // ... (içerik aynı)
+
   }
 
   // =================================================================
-  // YORUM GÜNCELLEME (UPDATE) - GÜNCELLENDİ
+  // YORUM GÜNCELLEME (UPDATE)
   // =================================================================
   async update(
     id: string,
     updateCommentDto: UpdateCommentDto,
-    user: AuthenticatedUser, // Sadece 'userId' değil, tüm 'user' objesi
+    user: AuthenticatedUser,
   ) {
-    // 1. Yorumu bul
+    // Yorumu bul
     const comment = await this.prisma.productComment.findUnique({
       where: { id },
     });
@@ -63,17 +59,14 @@ export class CommentsService {
       throw new NotFoundException('Güncellenecek yorum bulunamadı.');
     }
 
-    // 2. YETKİLENDİRME: Bu yorumu yapan kişi, giriş yapan kişi mi?
-    // Not: Bu endpoint'e sadece 'UPDATE_OWN' yetkisi olanlar gelebiliyor
-    // (Controller'da öyle tanımladık). Bu yüzden ekstra bir yetki kontrolüne
-    // gerek yok, SADECE SAHİPLİK kontrolü yapacağız.
+    // YETKİLENDİRME: Bu yorumu yapan kişi, giriş yapan kişi mi?
     if (comment.userId !== user.id) {
       throw new ForbiddenException(
         'Bu yorumu güncelleme yetkiniz bulunmamaktadır (Sadece sahibi güncelleyebilir).',
       );
     }
 
-    // 3. Transaction başlat
+    // Transaction başlat
     return this.prisma.$transaction(async (tx) => {
       const updatedComment = await tx.productComment.update({
         where: { id },
@@ -85,10 +78,10 @@ export class CommentsService {
   }
 
   // =================================================================
-  // YORUM SİLME (DELETE) - GÜNCELLENDİ
+  // YORUM SİLME (DELETE)
   // =================================================================
   async remove(id: string, user: AuthenticatedUser) {
-    // 1. Yorumu bul
+    // Yorumu bul
     const comment = await this.prisma.productComment.findUnique({
       where: { id },
     });
@@ -96,7 +89,7 @@ export class CommentsService {
       throw new NotFoundException('Silinecek yorum bulunamadı.');
     }
 
-    // 2. YETKİLENDİRME: Servis Katmanı Kontrolü
+    // YETKİLENDİRME: Servis Katmanı Kontrolü
     const canDeleteAny = user.permissions.has(PERMISSIONS.COMMENTS.DELETE_ANY);
     const canDeleteOwn = user.permissions.has(PERMISSIONS.COMMENTS.DELETE_OWN);
 
@@ -110,7 +103,6 @@ export class CommentsService {
         );
       }
     } else {
-      // Bu imkansız olmalı (Guard engeller), ama ekstra güvenlik.
       throw new ForbiddenException('Yorum silme yetkiniz yok.');
     }
 

@@ -22,6 +22,6 @@ export class CreateProductPhotoDto {
   size: number;
 
   @IsBoolean()
-  @IsOptional() // Opsiyonel: Eğer gönderilmezse servis mantığı karar verecek
+  @IsOptional() 
   isPrimary?: boolean;
 }

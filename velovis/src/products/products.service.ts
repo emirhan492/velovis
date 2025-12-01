@@ -29,21 +29,18 @@ export class ProductsService {
   }
 
   // =================================================================
-  // CREATE (YENİ ÜRÜN EKLEME)
+  // YENİ ÜRÜN EKLEME
   // =================================================================
   async create(createProductDto: CreateProductDto) {
-    // 1. DTO'dan 'otherPhotos'u ayıklıyoruz.
     const { otherPhotos, ...productData } = createProductDto;
 
     await this.validateCategory(createProductDto.categoryId);
 
     try {
-      // 2. Ürünü oluşturuyoruz
       const product = await this.prisma.product.create({
         data: productData,
       });
 
-      // 3. Yan Fotoğrafları Ekliyoruz
       if (otherPhotos && otherPhotos.length > 0) {
         const photoData = otherPhotos.map((url, index) => ({
           productId: product.id,
@@ -58,7 +55,6 @@ export class ProductsService {
         });
       }
 
-      // 4. Ana Fotoğrafı da ProductPhoto tablosuna ekliyoruz
       if (productData.primaryPhotoUrl) {
         await this.prisma.productPhoto.create({
           data: {
@@ -147,7 +143,6 @@ export class ProductsService {
             order: 'asc',
           },
         },
-        // 👇 YORUMLARI DA GETİRİYORUZ
         comments: {
           orderBy: { createdAt: 'desc' },
           include: {
@@ -166,10 +161,10 @@ export class ProductsService {
   }
 
   // =================================================================
-  // UPDATE (GÜNCELLEME)
+  // GÜNCELLEME
   // =================================================================
   async update(id: string, updateProductDto: UpdateProductDto) {
-    await this.findOne(id); // Ürün var mı kontrolü
+    await this.findOne(id);
 
     const { otherPhotos, ...productData } = updateProductDto;
 
@@ -178,15 +173,12 @@ export class ProductsService {
     }
 
     try {
-      // 2. Ürün bilgilerini güncelle
       const product = await this.prisma.product.update({
         where: { id },
         data: productData,
       });
 
-      // 3. Fotoğrafları Güncelle
       if (otherPhotos) {
-        // Eski yan fotoğrafları sil
         await this.prisma.productPhoto.deleteMany({
           where: {
             productId: id,
@@ -194,7 +186,6 @@ export class ProductsService {
           },
         });
 
-        // Yenileri ekle
         if (otherPhotos.length > 0) {
           const photoData = otherPhotos.map((url, index) => ({
             productId: id,
@@ -223,7 +214,7 @@ export class ProductsService {
   }
 
   // =================================================================
-  // DELETE (SİLME)
+  // SİLME
   // =================================================================
   async remove(id: string) {
     await this.findOne(id);
@@ -234,14 +225,13 @@ export class ProductsService {
   }
 
   // =================================================================
-  // ADD COMMENT (YORUM EKLEME)
+  // YORUM EKLEME
   // =================================================================
   async addComment(
     userId: string,
     productId: string,
     data: { rating: number; content: string },
   ) {
-    // Ürün var mı kontrol et
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -249,7 +239,6 @@ export class ProductsService {
       throw new NotFoundException('Ürün bulunamadı.');
     }
 
-    // Yorumu oluştur
     return await this.prisma.productComment.create({
       data: {
         content: data.content,
@@ -264,15 +253,12 @@ export class ProductsService {
   // YORUM SİLME
   // =================================================================
   async deleteComment(user: any, commentId: string) {
-    // 1. Yorumu bul
     const comment = await this.prisma.productComment.findUnique({
       where: { id: commentId },
     });
 
     if (!comment) throw new NotFoundException('Yorum bulunamadı.');
 
-    // 2. Yetki Kontrolü: Yorum sahibi mi? VEYA Admin mi?
-    // user.roles bir array olduğu için 'includes' kullanıyoruz.
     const isAdmin = user.roles && user.roles.includes('ADMIN');
     const isOwner = comment.userId === user.id;
 
@@ -280,7 +266,6 @@ export class ProductsService {
       throw new ForbiddenException('Bu işlemi yapmaya yetkiniz yok.');
     }
 
-    // 3. Sil
     return this.prisma.productComment.delete({
       where: { id: commentId },
     });
@@ -290,14 +275,12 @@ export class ProductsService {
   // YORUM DÜZENLEME
   // =================================================================
   async updateComment(user: any, commentId: string, data: { content: string; rating: number }) {
-    // 1. Yorumu bul
     const comment = await this.prisma.productComment.findUnique({
       where: { id: commentId },
     });
 
     if (!comment) throw new NotFoundException('Yorum bulunamadı.');
 
-    // 2. Yetki Kontrolü
     const isAdmin = user.roles && user.roles.includes('ADMIN');
     const isOwner = comment.userId === user.id;
 
@@ -307,7 +290,6 @@ export class ProductsService {
 
     const isEditedByAdmin = isAdmin && !isOwner;
 
-    // 3. Güncelle
     return this.prisma.productComment.update({
       where: { id: commentId },
       data: {

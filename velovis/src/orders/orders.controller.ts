@@ -33,8 +33,6 @@ export class OrdersController {
   }
 
   // 1. KULLANICI SİPARİŞLERİ (Siparişlerim Sayfası İçin)
-  // DÜZELTME: Sadece 'READ_OWN' izni istiyoruz.
-  // Böylece Admin bile olsa bu endpoint'ten sadece KENDİ siparişlerini çekecek.
   @CheckPermissions(PERMISSIONS.ORDERS.READ_OWN)
   @Get()
   findMyOrders(@Req() req: RequestWithUser) {
@@ -42,7 +40,6 @@ export class OrdersController {
   }
 
   // 2. TÜM SİPARİŞLER (Admin Paneli İçin)
-  // Buraya sadece Admin (READ_ANY yetkisi olan) erişebilir.
   @CheckPermissions(PERMISSIONS.ORDERS.READ_ANY)
   @Get('admin/all')
   findAll() {
@@ -65,7 +62,7 @@ export class OrdersController {
   }
 
   // KULLANICI: Sipariş İptali
-  @CheckPermissions(PERMISSIONS.ORDERS.UPDATE_OWN) // Kendi siparişini güncelleme yetkisini kullanabiliriz
+  @CheckPermissions(PERMISSIONS.ORDERS.UPDATE_OWN)
   @Patch(':id/cancel')
   async cancelOrder(
     @Param('id', ParseUUIDPipe) id: string,
@@ -74,8 +71,8 @@ export class OrdersController {
     return this.ordersService.cancelOrder(id, req.user.id);
   }
 
-  // KULLANICI: iade 
-  @CheckPermissions(PERMISSIONS.ORDERS.UPDATE_ANY) // Sadece Admin yetkisi
+  // KULLANICI: iade
+  @CheckPermissions(PERMISSIONS.ORDERS.UPDATE_ANY)
   @Post(':id/refund')
   async refundOrder(@Param('id', ParseUUIDPipe) id: string) {
     return this.ordersService.refundOrder(id);

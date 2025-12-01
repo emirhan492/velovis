@@ -4,6 +4,6 @@ import { ProductPhotosService } from './product-photos.service';
 
 @Module({
   controllers: [ProductPhotosController],
-  providers: [ProductPhotosService]
+  providers: [ProductPhotosService],
 })
 export class ProductPhotosModule {}

@@ -1,5 +1,3 @@
-// src/products/products.controller.ts
-
 import {
   Controller,
   Get,
@@ -67,11 +65,11 @@ export class ProductsController {
 
   // YORUMLAR
 
-  @UseGuards(JwtAuthGuard) // Sadece giriş yapmış kullanıcı yorum yapabilir
+  @UseGuards(JwtAuthGuard)
   @Post(':id/comments')
   async addComment(
     @Param('id') id: string,
-    @Body() body: { rating: number; content: string }, // Basitçe body'yi alıyoruz
+    @Body() body: { rating: number; content: string },
     @Req() req: any,
   ) {
     // Kullanıcı ID'sini (req.user.id) servise gönderiyoruz

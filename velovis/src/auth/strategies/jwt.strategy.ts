@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         id: true,
         username: true,
         fullName: true,
-        email: true, // <-- 1. ÇÖZÜM: 'email' alanı buraya eklendi
+        email: true,
         roles: {
           include: {
             role: {
@@ -55,9 +55,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       id: user.id,
       username: user.username,
       fullName: user.fullName,
-      email: user.email, // <-- 2. ÇÖZÜM: 'email' alanı buraya da eklendi
-      roles: user.roles.map((r) => r.role.name), 
-      permissions: permissionsSet, // 'Set' olarak kalmalı (PermissionsGuard için)
+      email: user.email,
+      roles: user.roles.map((r) => r.role.name),
+      permissions: permissionsSet,
     };
   }
 }

@@ -19,7 +19,7 @@ export class UsersService {
   ) {}
 
   // =================================================================
-  // CREATE (KULLANICI OLUŞTURMA)
+  // KULLANICI OLUŞTURMA
   // =================================================================
   async create(data: any) {
     try {
@@ -52,7 +52,7 @@ export class UsersService {
   }
 
   // =================================================================
-  // ACTIVATE USER (AKTİVASYON)
+  // AKTİVASYON
   // =================================================================
   async activateUser(userId: string) {
     return this.prisma.user.update({
@@ -87,7 +87,7 @@ export class UsersService {
         },
       },
       orderBy: {
-        createdAt: 'desc', // En yeni kullanıcı en üstte
+        createdAt: 'desc',
       },
     });
   }
@@ -103,7 +103,7 @@ export class UsersService {
   }
 
   // =================================================================
-  // UPDATE (GÜNCELLEME)
+  // GÜNCELLEME
   // =================================================================
   async update(id: string, data: any) {
     if (data.password) {
@@ -122,7 +122,7 @@ export class UsersService {
   }
 
   // =================================================================
-  // REMOVE (SİLME)
+  // SİLME
   // =================================================================
   async remove(id: string) {
     return this.prisma.user.delete({ where: { id } });
@@ -144,7 +144,7 @@ export class UsersService {
   }
 
   // =================================================================
-  // UPDATE PASSWORD
+  // ŞİFRE DEĞİŞTİRME
   // =================================================================
   async updatePassword(id: string, newPassword: string) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -165,19 +165,17 @@ export class UsersService {
   }
 
   // =================================================================
-  // UPDATE ROLES (KULLANICI ROLLERİNİ GÜNCELLEME) - YENİ EKLENDİ
+  // KULLANICI ROLLERİNİ GÜNCELLEME
   // =================================================================
   async updateRoles(userId: string, roleIds: string[]) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
 
     return await this.prisma.$transaction(async (tx) => {
-      // 1. Eski rolleri sil
       await tx.userRole.deleteMany({
         where: { userId: userId },
       });
 
-      // 2. Yeni rolleri ekle
       if (roleIds.length > 0) {
         const data = roleIds.map((roleId) => ({
           userId: userId,
@@ -189,7 +187,6 @@ export class UsersService {
         });
       }
 
-      // 3. Güncel kullanıcıyı ve rollerini döndür
       return tx.user.findUnique({
         where: { id: userId },
         include: {

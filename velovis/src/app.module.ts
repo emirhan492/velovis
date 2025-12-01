@@ -1,5 +1,3 @@
-// src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -33,7 +31,7 @@ import { PaymentModule } from './payment/payment.module';
     OrdersModule,
     RolesModule,
     MailerModule.forRootAsync({
-      imports: [ConfigModule], // ConfigModule'ü kullanacağını belirt
+      imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         // E-posta gönderim ayarları. Bunları .env dosyasından çekeceğiz.
         transport: {
@@ -42,23 +40,22 @@ import { PaymentModule } from './payment/payment.module';
           secure: false,
           requireTLS: true,
           auth: {
-            user: configService.get('MAIL_USER'), // E-posta adresin
-            pass: configService.get('MAIL_PASSWORD'), // E-posta şifren (veya Uygulama Şifresi)
+            user: configService.get('MAIL_USER'), // E-posta adresi
+            pass: configService.get('MAIL_PASSWORD'), // E-posta şifresi
           },
         },
         defaults: {
           from: `"Velovis E-Ticaret" <${configService.get('MAIL_FROM')}>`,
         },
-        // (İsteğe bağlı: E-posta şablonları kullanmak için)
         template: {
-          dir: join(__dirname, '..', 'templates'), // /dist/templates klasörü
+          dir: join(__dirname, '..', 'templates'),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
           },
         },
       }),
-      inject: [ConfigService], // ConfigService'i 'useFactory' içine enjekte et
+      inject: [ConfigService],
     }),
     PaymentModule,
   ],

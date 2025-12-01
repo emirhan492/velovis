@@ -18,7 +18,6 @@ export class CategoriesService {
         data: createCategoryDto,
       });
     } catch (error) {
-      // Prisma P2002 kodu, unique kısıtlama hatasıdır (slug veya name)
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('Bu isim (name) veya slug zaten kullanılıyor.');
       }
@@ -29,7 +28,7 @@ export class CategoriesService {
   async findAll() {
     return this.prisma.category.findMany({
       orderBy: {
-        order: 'asc', // Planda istendiği gibi 'order' (sıra) alanına göre sıralı
+        order: 'asc',
       },
     });
   }
@@ -48,7 +47,7 @@ export class CategoriesService {
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
     // Önce kategorinin var olup olmadığını kontrol et
     await this.findOne(id);
-    
+
     try {
       return await this.prisma.category.update({
         where: { id },
@@ -65,7 +64,7 @@ export class CategoriesService {
   async remove(id: string) {
     // Önce kategorinin var olup olmadığını kontrol et
     await this.findOne(id);
-    
+
     return this.prisma.category.delete({
       where: { id },
     });

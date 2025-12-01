@@ -1,5 +1,5 @@
 import {
-  IsArray, // <-- Yeni eklendi
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -39,14 +39,14 @@ export class CreateProductDto {
   @IsOptional()
   stockQuantity?: number;
 
-  // 👇 YENİ EKLENEN: Ana Fotoğraf URL'si
+  // Ana Fotoğraf URL'si
   @IsString()
   @IsOptional()
   primaryPhotoUrl?: string;
 
-  // 👇 YENİ EKLENEN: Diğer Fotoğraflar (Dizi Halinde)
+  // Diğer Fotoğraflar (Dizi Halinde)
   @IsOptional()
-  @IsArray() // Bunun bir liste (array) olduğunu belirtir
-  @IsString({ each: true }) // Listenin içindeki her bir elemanın String olması gerektiğini belirtir
+  @IsArray()
+  @IsString({ each: true })
   otherPhotos?: string[];
 }

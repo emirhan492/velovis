@@ -6,7 +6,7 @@ export class CreateCartItemDto {
   productId: string;
 
   @IsInt()
-  @Min(1) // Sepete en az 1 ürün eklenebilir
+  @Min(1) 
   quantity: number;
   size?: string;
 }

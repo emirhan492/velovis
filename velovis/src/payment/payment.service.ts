@@ -1,10 +1,7 @@
-// src/payment/payment.service.ts
-
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-// require yerine import tercih edilebilir ama şimdilik yapını bozmayalım
 const Iyzipay = require('iyzipay');
 
 @Injectable()
@@ -17,8 +14,8 @@ export class PaymentService {
   ) {
     // Ayarları .env dosyasından çekiyoruz
     this.iyzipay = new Iyzipay({
-      apiKey: this.configService.get<string>('IYZICO_API_KEY')!, // ! ekledik (TS Hatası için)
-      secretKey: this.configService.get<string>('IYZICO_SECRET_KEY')!, // ! ekledik
+      apiKey: this.configService.get<string>('IYZICO_API_KEY')!,
+      secretKey: this.configService.get<string>('IYZICO_SECRET_KEY')!,
       uri: this.configService.get<string>('IYZICO_BASE_URL'),
     });
   }
@@ -90,7 +87,7 @@ export class PaymentService {
   }
 
   // =================================================================
-  // 2. SONUÇ SORGULAMA
+  // SONUÇ SORGULAMA
   // =================================================================
   async retrievePaymentResult(token: string) {
     const request = {
@@ -111,9 +108,8 @@ export class PaymentService {
   }
 
   // =================================================================
-  // 3. SİPARİŞ KAYDI (Transaction) - DÜZELTİLDİ
+  // SİPARİŞ KAYDI (Transaction) - DÜZELTİLDİ
   // =================================================================
-  // DİKKAT: Buraya 'paymentId' parametresi eklendi
   async processSuccessfulPayment(
     userId: string,
     paidPrice: number,
@@ -124,7 +120,7 @@ export class PaymentService {
     );
 
     return await this.prisma.$transaction(async (tx) => {
-      // A. Sepeti Bul
+      // Sepeti Bul
       const cartItems = await tx.cartItem.findMany({
         where: { userId },
         include: { product: true },
@@ -136,13 +132,13 @@ export class PaymentService {
         );
       }
 
-      // B. Sipariş Oluştur
+      // Sipariş Oluştur
       const newOrder = await tx.order.create({
         data: {
           userId: userId,
           totalPrice: paidPrice,
           status: 'PAID',
-          paymentId: paymentId, // <--- İŞTE EKSİK OLAN PARÇA BUYDU!
+          paymentId: paymentId,
           items: {
             create: cartItems.map((item) => ({
               productId: item.productId,
@@ -153,7 +149,7 @@ export class PaymentService {
         },
       });
 
-      // C. Stoktan Düş
+      // Stoktan Düş
       for (const item of cartItems) {
         await tx.product.update({
           where: { id: item.productId },
@@ -163,7 +159,7 @@ export class PaymentService {
         });
       }
 
-      // D. Sepeti Temizle
+      // Sepeti Temizle
       await tx.cartItem.deleteMany({
         where: { userId },
       });

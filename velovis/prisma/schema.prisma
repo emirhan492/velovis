@@ -24,16 +24,15 @@ enum OrderStatus {
 }
 
 // =================================================================
-// MODELLER (Tablolar) - DOĞRU SIRAYLA
+// MODELLER (Tablolar)
 // =================================================================
 
 // 1. KULLANICI (USER)
-// (Diğer her şey buna bağlanır)
 model User {
   id        String   @id @default(uuid())
   firstName String
   lastName  String
-  fullName  String   // Trigger ile dolacak
+  fullName  String   
   username  String   @unique
   email     String   @unique
   hashedPassword  String

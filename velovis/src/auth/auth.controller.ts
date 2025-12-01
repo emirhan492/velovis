@@ -8,7 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
-  Patch, // Şifre değiştirme için
+  Patch,
   Query,
   Res,
 } from '@nestjs/common';
@@ -29,8 +29,6 @@ import { Public } from 'src/authorization/decorators/check-permissions.decorator
 // TİP TANIMLAMALARI
 // =================================================================
 
-// 'JwtStrategy'den gelen 'req.user' objesinin tipi
-// (Aşama 3'te güncellendi: 'id' ve 'Set<string>' permissions)
 interface RequestWithAuthUser extends Request {
   user: {
     id: string;
@@ -38,11 +36,10 @@ interface RequestWithAuthUser extends Request {
     fullName: string;
     email: string;
     roles: string[];
-    permissions: Set<string>; // Strateji'den 'Set' olarak gelir
+    permissions: Set<string>;
   };
 }
 
-// 'JwtRefreshStrategy'den gelen 'req.user' objesinin tipi
 interface RequestWithRefreshUser extends Request {
   user: {
     sub: string;
@@ -51,7 +48,7 @@ interface RequestWithRefreshUser extends Request {
   };
 }
 
-@Controller('auth') // Tüm endpoint'ler /api/auth altında
+@Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -59,7 +56,7 @@ export class AuthController {
   ) {}
 
   // =================================================================
-  // AŞAMA 1 ENDPOINT'LERİ (TEMEL AUTH)
+  // TEMEL AUTH
   // =================================================================
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
@@ -71,22 +68,19 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // GET /me (Aşama 3'te Düzeltildi - Set'i Array'e çevirir)
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Req() req: RequestWithAuthUser) {
-    const user = req.user; // Strateji'den 'user' objesini (içinde 'Set' var) aldık
+    const user = req.user;
 
-    // 'Set' objesi JSON'a dönüşmez, bu yüzden 'Array'e dönüştürüp
-    // frontend'e öyle yolluyoruz.
     return {
       ...user,
-      permissions: Array.from(user.permissions), // Set -> Array
+      permissions: Array.from(user.permissions),
     };
   }
 
   // =================================================================
-  // AŞAMA 2 ENDPOINT'LERİ (TOKEN YÖNETİMİ)
+  // TOKEN YÖNETİMİ
   // =================================================================
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
@@ -123,10 +117,10 @@ export class AuthController {
   }
 
   // =================================================================
-  // AŞAMA 4 ENDPOINT'LERİ (ŞİFRE YÖNETİMİ)
+  // ŞİFRE YÖNETİMİ
   // =================================================================
 
-  // Senaryo 1: Hesaptan Şifre Değiştirme
+  // Hesaptan Şifre Değiştirme
   @UseGuards(JwtAuthGuard)
   @Patch('change-password')
   @HttpCode(HttpStatus.OK)
@@ -138,7 +132,7 @@ export class AuthController {
     return this.authService.changePassword(userId, changePasswordDto);
   }
 
-  // Senaryo 2: Şifremi Unuttum (E-posta Gönderme)
+  //Şifremi Unuttum
   // (Guard YOK - Herkese açık)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -146,7 +140,7 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  // Senaryo 2: Şifreyi Sıfırlama (Linkten Gelen)
+  // Şifreyi Sıfırlama (Linkten Gelen)
   // (Guard YOK - Herkese açık)
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
@@ -162,21 +156,18 @@ export class AuthController {
   @Get('activate') // HTTP GET isteği
   @HttpCode(HttpStatus.OK)
   async activateAccount(
-    @Query('token') token: string, // URL'den token'ı al (örn: ...?token=abc)
-    // @Res() res: Response, // <- SİLİNDİ
+    @Query('token') token: string, // URL'den token'ı al
+
   ) {
-    // 1. Servisi çağır.
-    // Bu servis, token geçersizse veya bir hata olursa
-    // (NotFoundException, ConflictException vb.) HATA FIRLATMALIDIR.
+    // Servisi çağır
     await this.authService.activateAccount(token);
 
-    // 2. Hata fırlatılmazsa, NestJS'in otomatik olarak JSON
-    // yanıtı göndermesini sağla. Frontend bu yanıtı bekliyor.
+
     return {
       success: true,
       message: 'Hesap başarıyla aktifleştirildi.',
     };
 
-    // --- YÖNLENDİRME YAPAN TÜM try...catch BLOĞU SİLİNDİ ---
+
   }
 }

@@ -17,37 +17,31 @@ import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  // 1. TÜM KULLANICILARI LİSTELE
+  // TÜM KULLANICILARI LİSTELE
   @CheckPermissions(PERMISSIONS.USERS.READ)
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
-  // 2. TEK KULLANICI DETAYI
+  // TEK KULLANICI DETAYI
   @CheckPermissions(PERMISSIONS.USERS.READ)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    // Eğer service'inde findOne yoksa, findAll içinden filtreleyebilir 
-    // veya service'e findOne ekleyebilirsin.
-    // Şimdilik findAll kullanıldığı için burası opsiyonel.
     return { message: 'Bu endpoint henüz aktif değil, listeden bakınız.' };
   }
 
   // =================================================================
-  // KULLANICI ROL GÜNCELLEME (Frontend ile uyumlu)
+  // KULLANICI ROL GÜNCELLEME
   // =================================================================
   @CheckPermissions(PERMISSIONS.USERS.ASSIGN_ROLE)
-  @Patch(':id/roles') // Frontend api.patch('/users/:id/roles') atıyor
+  @Patch(':id/roles')
   async updateRoles(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { roles: string[] }, // Frontend { roles: [...] } gönderiyor
+    @Body() body: { roles: string[] },
   ) {
-    // UsersService içindeki mantığı çağırıyoruz
     return this.usersService.updateRoles(id, body.roles);
   }
 
@@ -57,7 +51,6 @@ export class UsersController {
   @CheckPermissions(PERMISSIONS.USERS.DELETE)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
-    // DİKKAT: req.user.id yerine parametreden gelen 'id'yi siliyoruz.
     return this.usersService.remove(id);
   }
 }

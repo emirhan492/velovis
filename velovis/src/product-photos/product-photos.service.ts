@@ -13,7 +13,7 @@ export class ProductPhotosService {
   async create(createProductPhotoDto: CreateProductPhotoDto) {
     const { productId, url, size, isPrimary } = createProductPhotoDto;
 
-    // 1. Ürün var mı?
+    // Ürün var mı?
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -21,23 +21,20 @@ export class ProductPhotosService {
       throw new NotFoundException('İlgili ürün bulunamadı.');
     }
 
-    // 2. Mevcut fotoğrafların sayısını bul (yeni sırayı belirlemek için)
+    // Mevcut fotoğrafların sayısını bul
     const currentPhotoCount = await this.prisma.productPhoto.count({
       where: { productId },
     });
 
-    // 3. Yeni fotoğrafın sırası
+    // Yeni fotoğrafın sırası
     const newOrder = currentPhotoCount + 1;
 
-    // 4. Bu fotoğraf birincil mi olacak?
-    // Eğer bu ilk fotoğraftsa (count=0) VEYA DTO'da isPrimary=true geldiyse,
-    // bu fotoğraf birincil olmalı.
+    // Bu fotoğraf birincil mi olacak?
     const shouldBePrimary = currentPhotoCount === 0 || isPrimary === true;
 
     // Prisma $transaction: Birden fazla işlemi atomik olarak yap
-    // Ya hepsi başarılı olur, ya da hiçbiri olmaz.
     return this.prisma.$transaction(async (tx) => {
-      // 5. Eğer bu fotoğraf birincil olacaksa, diğer tüm fotoğrafları "birincil değil" yap
+      // Eğer bu fotoğraf birincil olacaksa, diğer tüm fotoğrafları "birincil değil" yap
       if (shouldBePrimary) {
         await tx.productPhoto.updateMany({
           where: { productId: productId },
@@ -45,7 +42,7 @@ export class ProductPhotosService {
         });
       }
 
-      // 6. Yeni fotoğrafı oluştur
+      // Yeni fotoğrafı oluştur
       const newPhoto = await tx.productPhoto.create({
         data: {
           productId: productId,
@@ -56,7 +53,7 @@ export class ProductPhotosService {
         },
       });
 
-      // 7. Ana Product tablosundaki 'primary_photo_url' alanını güncelle
+      // Ana Product tablosundaki 'primary_photo_url' alanını güncelle
       if (shouldBePrimary) {
         await tx.product.update({
           where: { id: productId },
@@ -74,7 +71,7 @@ export class ProductPhotosService {
   async update(id: string, updateProductPhotoDto: UpdateProductPhotoDto) {
     const { isPrimary, order: newOrder } = updateProductPhotoDto;
 
-    // 1. Fotoğraf var mı?
+    // Fotoğraf var mı?
     const photoToUpdate = await this.prisma.productPhoto.findUnique({
       where: { id },
     });
@@ -87,11 +84,9 @@ export class ProductPhotosService {
 
     // Prisma Transaction başlat
     return this.prisma.$transaction(async (tx) => {
-      // === GÖREV 1: isPrimary GÜNCELLENİYOR MU? ===
       if (isPrimary === true) {
-        // Evet, bu fotoğraf birincil yapılıyor.
 
-        // 1. Bu ürüne ait diğer tüm fotoğrafları "birincil değil" yap
+        // Bu ürüne ait diğer tüm fotoğrafları "birincil değil" yap
         await tx.productPhoto.updateMany({
           where: {
             productId: productId,
@@ -100,16 +95,14 @@ export class ProductPhotosService {
           data: { isPrimary: false },
         });
 
-        // 2. Ana Product tablosunu yeni URL ile güncelle
+        // Ana Product tablosunu yeni URL ile güncelle
         await tx.product.update({
           where: { id: productId },
           data: { primaryPhotoUrl: photoToUpdate.url },
         });
       }
-      // === GÖREV 2: order (Sıra) GÜNCELLENİYOR MU? ===
       if (newOrder && newOrder !== currentOrder) {
-        // Evet, sıra değişiyor.
-        // Üründeki toplam fotoğraf sayısını al (sınır kontrolü için)
+
         const photoCount = await tx.productPhoto.count({
           where: { productId },
         });
@@ -120,14 +113,12 @@ export class ProductPhotosService {
         }
 
         if (newOrder > currentOrder) {
-          // Fotoğraf listede AŞAĞI kaydırılıyor (örn: 2 -> 5)
-          // Aradaki fotoğrafların (3, 4, 5) sırası 1 azaltılmalı (-> 2, 3, 4)
           await tx.productPhoto.updateMany({
             where: {
               productId: productId,
               order: {
-                gt: currentOrder, // Eskisinden büyük
-                lte: newOrder, // Yenisine eşit veya küçük
+                gt: currentOrder,
+                lte: newOrder,
               },
             },
             data: {
@@ -137,14 +128,12 @@ export class ProductPhotosService {
             },
           });
         } else if (newOrder < currentOrder) {
-          // Fotoğraf listede YUKARI kaydırılıyor (örn: 5 -> 2)
-          // Aradaki fotoğrafların (2, 3, 4) sırası 1 artırılmalı (-> 3, 4, 5)
           await tx.productPhoto.updateMany({
             where: {
               productId: productId,
               order: {
-                gte: newOrder,   // Yenisine eşit veya büyük
-                lt: currentOrder, // Eskisinden küçük
+                gte: newOrder,
+                lt: currentOrder,
               },
             },
             data: {
@@ -156,9 +145,7 @@ export class ProductPhotosService {
         }
       }
 
-      // === FİNAL: Fotoğrafı Güncelle ===
-      // Hem isPrimary hem de order (veya sadece biri) güncellenmiş DTO ile
-      // ana fotoğrafımızı güncelliyoruz.
+      // === Fotoğrafı Güncelle ===
       return tx.productPhoto.update({
         where: { id },
         data: updateProductPhotoDto,
@@ -170,7 +157,7 @@ export class ProductPhotosService {
   // FOTOĞRAF SİLME (DELETE)
   // =================================================================
   async remove(id: string) {
-    // 1. Fotoğrafı bul
+    // Fotoğrafı bul
     const photo = await this.prisma.productPhoto.findUnique({
       where: { id },
     });
@@ -181,43 +168,40 @@ export class ProductPhotosService {
     const { productId, order, isPrimary } = photo;
 
     return this.prisma.$transaction(async (tx) => {
-      // 2. Fotoğrafı sil
+      // Fotoğrafı sil
       await tx.productPhoto.delete({ where: { id } });
 
-      // 3. Silinen fotoğraftan sonraki tüm fotoğrafların sırasını 1 azalt (boşluk olmasın)
+      // Silinen fotoğraftan sonraki tüm fotoğrafların sırasını 1 azalt (boşluk olmasın)
       await tx.productPhoto.updateMany({
         where: {
           productId: productId,
-          order: { gt: order }, // sırası, silineninkinden büyük olanlar
+          order: { gt: order },
         },
         data: {
           order: {
-            decrement: 1, // sırayı 1 azalt
+            decrement: 1,
           },
         },
       });
 
-      // 4. Silinen fotoğraf BİRİNCİL fotoğraf mıydı?
       if (isPrimary) {
-        // Evet, öyleyse yeni bir birincil fotoğraf seçmemiz gerek
         const nextPrimaryPhoto = await tx.productPhoto.findFirst({
           where: { productId: productId },
-          orderBy: { order: 'asc' }, // Sıradaki ilk fotoğraf (örn: order=1)
+          orderBy: { order: 'asc' },
         });
 
         if (nextPrimaryPhoto) {
-          // 4a. Yeni birincil fotoğraf bulundu, onu işaretle
           await tx.productPhoto.update({
             where: { id: nextPrimaryPhoto.id },
             data: { isPrimary: true },
           });
-          // ve Product tablosunu güncelle
+          // Product tablosunu güncelle
           await tx.product.update({
             where: { id: productId },
             data: { primaryPhotoUrl: nextPrimaryPhoto.url },
           });
         } else {
-          // 4b. Başka fotoğraf kalmadı, Product tablosunu null yap
+          // Başka fotoğraf kalmadı, Product tablosunu null yap
           await tx.product.update({
             where: { id: productId },
             data: { primaryPhotoUrl: null },

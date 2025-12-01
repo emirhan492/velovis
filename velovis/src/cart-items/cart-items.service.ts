@@ -29,7 +29,6 @@ export class CartItemsService {
   // SEPETE ÜRÜN EKLEME (veya MİKTAR GÜNCELLEME)
   // =================================================================
   async addOrUpdateItem(userId: string, createCartItemDto: CreateCartItemDto) {
-    // 👇 'size' bilgisini DTO'dan alıyoruz
     const { productId, quantity, size } = createCartItemDto;
 
     const product = await this.prisma.product.findUnique({
@@ -40,20 +39,19 @@ export class CartItemsService {
       throw new NotFoundException('Ürün bulunamadı.');
     }
 
-    // 👇 ARTIK BEDEN İLE BİRLİKTE KONTROL EDİYORUZ
+    // BEDEN İLE BİRLİKTE KONTROL EDİYORUZ
     const existingCartItem = await this.prisma.cartItem.findUnique({
       where: {
         userId_productId_size: {
-          // <-- Prisma şemadaki unique constraint ismi
           userId: userId,
           productId: productId,
-          size: size || '', // Eğer beden yoksa boş string
+          size: size || '',
         },
       },
     });
 
     if (existingCartItem) {
-      // 3. ÜRÜN (AYNI BEDEN) ZATEN SEPETTE VARSA -> MİKTARI GÜNCELLE
+      // ÜRÜN (AYNI BEDEN) ZATEN SEPETTE VARSA -> MİKTARI GÜNCELLE
       const newQuantity = existingCartItem.quantity + quantity;
 
       if (newQuantity > product.stockQuantity) {
@@ -72,7 +70,7 @@ export class CartItemsService {
         include: includeProductDetails,
       });
     } else {
-      // 4. ÜRÜN (BU BEDENDE) SEPETTE YOKSA -> YENİ KAYIT OLUŞTUR
+      // ÜRÜN (BU BEDENDE) SEPETTE YOKSA -> YENİ KAYIT OLUŞTUR
       if (quantity > product.stockQuantity) {
         throw new BadRequestException(
           `Stokta yeterli ürün yok. Bu üründen en fazla ${product.stockQuantity} adet ekleyebilirsiniz.`,
@@ -84,7 +82,7 @@ export class CartItemsService {
           userId: userId,
           productId: productId,
           quantity: quantity,
-          size: size, // 👇 Beden bilgisini kaydediyoruz
+          size: size,
         },
         include: includeProductDetails,
       });

@@ -1,5 +1,3 @@
-// src/product-photos/product-photos.controller.ts
-
 import {
   Controller,
   Post,

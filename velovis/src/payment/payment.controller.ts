@@ -1,5 +1,3 @@
-// src/payment/payment.controller.ts
-
 import {
   Controller,
   Post,
@@ -61,14 +59,14 @@ export class PaymentController {
   async paymentCallback(@Req() req: any, @Res() res: Response) {
     const { token } = req.body;
 
-    // 1. Token kontrolü
+    // Token kontrolü
     if (!token) {
       console.error('❌ HATA: Iyzico Token göndermedi!');
       return res.redirect('http://localhost:3001/cart?error=token_not_found');
     }
 
     try {
-      // 2. Iyzico'ya soruyoruz
+      // Iyzico'ya soruyoruz
       const result: any =
         await this.paymentService.retrievePaymentResult(token);
 
@@ -91,7 +89,6 @@ export class PaymentController {
 
         const paidPrice = parseFloat(result.paidPrice);
 
-        // 👇 DÜZELTME BURADA YAPILDI 👇
         // Iyzico'dan gelen 'paymentId'yi servise iletiyoruz.
         const paymentId = result.paymentId;
 
@@ -101,7 +98,6 @@ export class PaymentController {
           paidPrice,
           paymentId,
         );
-        // 👆 -------------------------- 👆
 
         console.log(
           `✅ Sipariş Başarıyla Oluşturuldu! UserID: ${userId}, PaymentID: ${paymentId}`,

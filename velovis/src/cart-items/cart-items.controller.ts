@@ -1,4 +1,4 @@
-// src/cart-items/cart-items.controller.ts
+
 
 import {
   Controller,
@@ -24,14 +24,13 @@ import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
 import { Request } from 'express';
 import type { RequestWithUser } from '../types/auth-request.type';
 
-// req.user tipini tanımlıyoruz
 
-@UseGuards(JwtAuthGuard, PermissionsGuard) // Bütün controller'ı koru
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('cart-items')
 export class CartItemsController {
   constructor(private readonly cartItemsService: CartItemsService) {}
 
-  @CheckPermissions(PERMISSIONS.CARTS.UPDATE_OWN) // Sepete ekleme = sepeti güncelleme
+  @CheckPermissions(PERMISSIONS.CARTS.UPDATE_OWN)
   @Post()
   addOrUpdateItem(
     @Body() createCartItemDto: CreateCartItemDto,

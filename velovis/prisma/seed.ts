@@ -9,7 +9,7 @@ async function main() {
   console.log('🌱 Tohumlama (seeding) işlemi başlıyor...');
 
   // ----------------------------------------------------------------
-  // 1. TEMİZLİK (HER ŞEYİ SİL)
+  // 1. TEMİZLİK
   // ----------------------------------------------------------------
   console.log('🧹 Eski veriler temizleniyor...');
   // İlişki sırasına göre silme işlemi (Hata almamak için)
@@ -115,7 +115,6 @@ async function main() {
   // ----------------------------------------------------------------
   console.log('🔨 Admin hesabı oluşturuluyor...');
   const salt = await bcrypt.genSalt(10);
-  // Şifre: Admin123!
   const hashedPassword = await bcrypt.hash('Admin123!', salt);
 
   const adminUser = await prisma.user.create({
@@ -126,7 +125,7 @@ async function main() {
       email: 'veloviswear1@gmail.com',
       hashedPassword: hashedPassword,
       isActive: true,
-      fullName: 'Admin', // Trigger beklemeden dolduralım
+      fullName: 'Admin',
     },
   });
 
@@ -145,8 +144,6 @@ async function main() {
   // ----------------------------------------------------------------
   // 5. KATEGORİ (ALTYAPI İÇİN GEREKLİ)
   // ----------------------------------------------------------------
-  // Ürün ekleme formunda kategori seçimi zorunlu olduğu için
-  // en az 1 tane kategori bırakıyoruz.
   console.log('🔨 Altyapı kategorisi oluşturuluyor...');
 
   await prisma.category.create({

@@ -1,5 +1,3 @@
-// src/comments/comments.controller.ts
-
 import {
   Controller,
   Get,
@@ -28,7 +26,6 @@ interface RequestWithUser extends Request {
   user: {
     id: string;
     permissions: Set<string>;
-    // ... (JwtStrategy'den gelen diğer alanlar)
   };
 }
 
@@ -62,7 +59,7 @@ export class CommentsController {
     return this.commentsService.findOne(id);
   }
 
-  // Sadece 'update:own' (kendi) yetkisi olan
+  // Sadece kendi yetkisi olan
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @CheckPermissions(PERMISSIONS.COMMENTS.UPDATE_OWN)
   @Patch(':id')
@@ -76,7 +73,7 @@ export class CommentsController {
     return this.commentsService.update(id, updateCommentDto, user);
   }
 
-  // 'delete:own' (kendi) VEYA 'delete:any' (herhangi) yetkisi olan
+  // kendi VEYA herhangi yetkisi olan
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @CheckPermissions(
     PERMISSIONS.COMMENTS.DELETE_OWN,
