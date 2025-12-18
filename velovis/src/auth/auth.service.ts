@@ -1,4 +1,3 @@
-
 import {
   ConflictException,
   Injectable,
@@ -67,7 +66,10 @@ export class AuthService {
         email: registerDto.email,
         username: registerDto.username || registerDto.email.split('@')[0],
         hashedPassword: hashedPassword,
-        isActive: true,
+
+        // GÜNCELLEME: E-posta onayı varsayılan olarak false
+        isEmailVerified: false,
+        isActive: true, // Hesap banlı değil ama onaysız
 
         // Rolü bağlıyoruz
         roles: {
@@ -102,7 +104,7 @@ export class AuthService {
 
     return {
       message:
-        'Kayıt başarılı. Hesabınız oluşturuldu ve USER yetkisi tanımlandı.',
+        'Kayıt başarılı. Lütfen e-posta adresinize gönderilen aktivasyon linkine tıklayın.',
     };
   }
 
@@ -118,9 +120,17 @@ export class AuthService {
       throw new UnauthorizedException('Kullanıcı adı veya parola hatalı.');
     }
 
+    // GÜNCELLEME: E-posta Doğrulama Kontrolü (Burası eklendi)
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Giriş yapmadan önce lütfen e-posta adresinizi onaylayın.',
+      );
+    }
+
+    // Hesabın yönetici tarafından dondurulup dondurulmadığı kontrolü
     if (!user.isActive) {
       throw new ForbiddenException(
-        'Hesabınız henüz aktifleştirilmemiş. Lütfen e-postanızı kontrol edin.',
+        'Hesabınız devre dışı bırakılmış.',
       );
     }
 
@@ -153,10 +163,11 @@ export class AuthService {
         throw new NotFoundException('Kullanıcı bulunamadı.');
       }
 
-      if (user.isActive) {
+      if (user.isEmailVerified) {
         return { message: 'Hesap zaten aktif.' };
       }
 
+      // UsersService içindeki activateUser metodunun isEmailVerified=true yaptığından emin olun
       await this.usersService.activateUser(userId);
 
       return { message: 'Hesabınız başarıyla aktifleştirildi.' };
