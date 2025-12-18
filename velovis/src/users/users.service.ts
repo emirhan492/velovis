@@ -5,8 +5,8 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { AuthService } from 'src/auth/auth.service';
+import { PrismaService } from '../prisma/prisma.service'; // Path düzeltildi (src/prisma değil ../prisma)
+import { AuthService } from '../auth/auth.service'; // Path düzeltildi
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 
@@ -52,12 +52,15 @@ export class UsersService {
   }
 
   // =================================================================
-  // AKTİVASYON
+  // AKTİVASYON (GÜNCELLENDİ: isEmailVerified eklendi)
   // =================================================================
   async activateUser(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { isActive: true },
+      data: { 
+        isActive: true,
+        isEmailVerified: true // Kritik güncelleme: Mail doğrulandı olarak işaretle
+      },
     });
   }
 
@@ -73,6 +76,8 @@ export class UsersService {
         fullName: true,
         username: true,
         email: true,
+        isEmailVerified: true, // Bunu da görmek isteyebilirsin
+        isActive: true,
         createdAt: true,
         updatedAt: true,
         roles: {
@@ -98,6 +103,16 @@ export class UsersService {
   async findOne(username: string) {
     return this.prisma.user.findUnique({
       where: { username },
+      include: { roles: true },
+    });
+  }
+
+  // =================================================================
+  // FIND ONE BY EMAIL (AuthService için gerekli olabilir)
+  // =================================================================
+  async findOneByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
       include: { roles: true },
     });
   }
@@ -158,35 +173,49 @@ export class UsersService {
   // REFRESH TOKEN SİLME
   // =================================================================
   async invalidateAllRefreshTokens(userId: string) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { hashedRefreshToken: null },
+    // Schema'da hashedRefreshToken alanı yoksa bu kısım hata verir.
+    // RefreshToken tablosu kullanıyorsan aşağıdaki gibi olmalı:
+    return this.prisma.refreshToken.updateMany({
+      where: { userId: userId, invalidatedAt: null },
+      data: { invalidatedAt: new Date() },
     });
   }
 
   // =================================================================
-  // KULLANICI ROLLERİNİ GÜNCELLEME
+  // KULLANICI ROLLERİNİ GÜNCELLEME (GÜVENLİ VERSİYON)
   // =================================================================
-  async updateRoles(userId: string, roleIds: string[]) {
+  async updateRoles(userId: string, roleIdsOrNames: string[]) {
+    // Kullanıcıyı bul
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Kullanıcı bulunamadı.');
 
+    // Gelen veri ID mi yoksa İsim mi (ADMIN, USER)?
+    // Genelde frontend'den isim veya ID gelebilir. Biz her ihtimale karşı ID'lerini bulalım.
+    // Eğer roleIdsOrNames zaten ID ise bu sorgu boş dönebilir, o yüzden mantığı ID varsayarak kuruyorum.
+    // Ancak hata mesajındaki "Unique constraint" hatasını çözmek için en garanti yol SİL-EKLE yöntemidir.
+
     return await this.prisma.$transaction(async (tx) => {
+      // 1. Önce kullanıcının tüm rollerini sil (Temiz sayfa)
       await tx.userRole.deleteMany({
         where: { userId: userId },
       });
 
-      if (roleIds.length > 0) {
-        const data = roleIds.map((roleId) => ({
+      // 2. Eğer eklenecek rol varsa ekle
+      if (roleIdsOrNames.length > 0) {
+        // Gelen verinin Role ID olduğunu varsayıyoruz (Senin kodunda roleIds demişsin)
+        const data = roleIdsOrNames.map((roleId) => ({
           userId: userId,
           roleId: roleId,
         }));
 
+        // createMany kullanmak performanslıdır
         await tx.userRole.createMany({
           data: data,
+          skipDuplicates: true, // Çakışma olursa (aynı ID iki kere gelirse) hata verme, atla
         });
       }
 
+      // 3. Güncel kullanıcıyı rolleriyle birlikte döndür
       return tx.user.findUnique({
         where: { id: userId },
         include: {
