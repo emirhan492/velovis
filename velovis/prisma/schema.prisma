@@ -38,7 +38,13 @@ model User {
   hashedPassword String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  isActive       Boolean  @default(false)
+  
+  // GÜNCELLENEN ALANLAR:
+  // isActive: Hesap banlı mı? (Default: true = Açık/Banlı Değil)
+  isActive        Boolean  @default(true) 
+  
+  // isEmailVerified: Mail onaylandı mı? (Default: false = Onaysız)
+  isEmailVerified Boolean  @default(false)
 
   // İlişkiler
   comments            ProductComment[]
@@ -161,20 +167,20 @@ model CartItem {
   @@map("cart_items")
 }
 
-// 8. SİPARİŞ (ORDER) - GÜNCELLENDİ (Adres Bilgileri Eklendi)
+// 8. SİPARİŞ (ORDER)
 model Order {
-  id          String      @id @default(uuid())
-  totalPrice  Float
-  status      OrderStatus @default(PENDING)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  totalPrice   Float
+  status       OrderStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
 
-  paymentId   String?
+  paymentId    String?
 
-  // 👇 YENİ EKLENEN ADRES ALANLARI 👇
+  // ADRES BİLGİLERİ
   contactName String?   // Teslim alacak kişi
   city        String?   // İl
   district    String?   // İlçe
@@ -218,12 +224,11 @@ model PasswordResetToken {
 
 // 11. ROL (ROLE)
 model Role {
-  id          String @id @default(uuid())
-  name        String @unique
+  id   String @id @default(uuid())
+  name String @unique
   
   users       UserRole[]
   permissions RolePermission[]
-
 
   @@map("roles")
 }
