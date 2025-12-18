@@ -6,12 +6,14 @@ import {
   Body,
   UseGuards,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CartItemsService } from 'src/cart-items/cart-items.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Request } from 'express';
 import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config'; // EKLENDİ
 
 interface RequestWithUser extends Request {
   user: {
@@ -29,6 +31,7 @@ export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly cartItemsService: CartItemsService,
+    private readonly configService: ConfigService, // EKLENDİ
   ) {}
 
   // =================================================================
@@ -84,15 +87,25 @@ export class PaymentController {
   }
 
   // =================================================================
-  // 2. CALLBACK (DÜZELTİLDİ)
+  // 2. CALLBACK (LOCALHOST TEMİZLENDİ)
   // =================================================================
   @Post('callback')
   async paymentCallback(@Req() req: any, @Res() res: Response) {
     const { token } = req.body;
 
+    // Frontend URL'ini .env dosyasından alıyoruz (Örn: https://veloviswear.com)
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    if (!frontendUrl) {
+      console.error(
+        '❌ CRITICAL ERROR: FRONTEND_URL .env dosyasında bulunamadı!',
+      );
+      // Acil durum fallback'i ama loglarda hatayı görmelisin
+      return res.status(500).send('Configuration Error: FRONTEND_URL missing');
+    }
+
     if (!token) {
       console.error('❌ HATA: Iyzico Token göndermedi!');
-      return res.redirect('http://localhost:3001/cart?error=token_not_found');
+      return res.redirect(`${frontendUrl}/cart?error=token_not_found`);
     }
 
     try {
@@ -102,13 +115,10 @@ export class PaymentController {
       console.log('--------------------------------------------------');
       console.log('🔍 IYZICO CALLBACK GELDİ');
       console.log('Status:', result.status);
-      console.log('BasketId (Bizim Order ID):', result.basketId); // <-- Doğru ID burada
+      console.log('BasketId (Bizim Order ID):', result.basketId);
       console.log('--------------------------------------------------');
 
       if (result.status === 'success' && result.paymentStatus === 'SUCCESS') {
-        // 🛑 DÜZELTME BURADA YAPILDI 🛑
-        // conversationId yerine basketId kullanıyoruz.
-        // Çünkü startPayment metodunda basketId'ye pendingOrder.id'yi atamıştık.
         const orderId = result.basketId;
         const paymentId = result.paymentId;
 
@@ -120,18 +130,21 @@ export class PaymentController {
         await this.paymentService.completeOrder(orderId, paymentId);
 
         console.log(`✅ İŞLEM BAŞARILI: Sipariş (${orderId}) onaylandı.`);
-        return res.redirect('http://localhost:3001/payment/success');
+        // Başarılı sayfasına yönlendir
+        return res.redirect(`${frontendUrl}/payment-success`);
       } else {
         const errorMessage = result.errorMessage || 'Ödeme başarısız oldu.';
         console.error('❌ IYZICO HATASI:', errorMessage);
+        // Hata ile sepete geri gönder
         return res.redirect(
-          `http://localhost:3001/cart?error=${encodeURIComponent(errorMessage)}`,
+          `${frontendUrl}/cart?error=${encodeURIComponent(errorMessage)}`,
         );
       }
     } catch (error: any) {
       console.error('❌ CALLBACK HATASI (SİSTEM):', error.message);
+      // Sistem hatası ile sepete geri gönder
       return res.redirect(
-        `http://localhost:3001/cart?error=${encodeURIComponent(error.message)}`,
+        `${frontendUrl}/cart?error=${encodeURIComponent(error.message)}`,
       );
     }
   }

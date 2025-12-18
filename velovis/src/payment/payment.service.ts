@@ -34,17 +34,15 @@ export class PaymentService {
     });
   }
 
-  // ... startPayment ve retrievePaymentResult fonksiyonları aynen kalacak ...
-  // (Burayı kısaltıyorum, mevcut kodunuzdaki gibi kalabilir, sadece constructor ve refundPayment değişti)
+  // =================================================================
+  // 1. ÖDEME BAŞLAT (START PAYMENT)
+  // =================================================================
   async startPayment(
     user: any,
     cartItems: any[],
     totalPrice: number,
     addressData: any,
   ) {
-    // ... Mevcut startPayment kodunuz ...
-    // (Burayı kopyalayıp yapıştırırken mevcut kodunuzu koruyun)
-    // Önceki cevaptaki düzeltilmiş halini kullanın.
     if (!addressData) throw new InternalServerErrorException('Adres yok');
 
     const fullAddressForIyzico = `${addressData.district} / ${addressData.address}`;
@@ -76,6 +74,14 @@ export class PaymentService {
       else gsmNumber = '+90' + gsmNumber;
     }
 
+    // API URL'sini .env'den al (Backend Adresi)
+    const apiUrl = this.configService.get<string>('API_URL');
+    if (!apiUrl) {
+      throw new InternalServerErrorException(
+        'API_URL konfigürasyonu eksik. Ödeme başlatılamıyor.',
+      );
+    }
+
     const request = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: pendingOrder.id,
@@ -84,7 +90,8 @@ export class PaymentService {
       currency: Iyzipay.CURRENCY.TRY,
       basketId: pendingOrder.id,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
-      callbackUrl: `${this.configService.get<string>('API_URL') || 'http://localhost:3000'}/api/payment/callback`,
+      // DÜZELTİLDİ: Artık sadece canlı API_URL kullanılıyor
+      callbackUrl: `${apiUrl}/api/payment/callback`,
       enabledInstallments: [1, 2, 3, 6, 9],
       buyer: {
         id: String(user.id),
@@ -134,8 +141,10 @@ export class PaymentService {
     });
   }
 
+  // =================================================================
+  // 2. ÖDEME SONUCU SORGULA
+  // =================================================================
   async retrievePaymentResult(token: string) {
-    // ... Mevcut retrievePaymentResult kodunuz ...
     const request = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: '123456789',
@@ -149,8 +158,10 @@ export class PaymentService {
     });
   }
 
+  // =================================================================
+  // 3. SİPARİŞİ TAMAMLA
+  // =================================================================
   async completeOrder(orderId: string, paymentId: string) {
-    // ... Mevcut completeOrder kodunuz ...
     console.log(`✅ Sipariş Onaylanıyor... OrderID: ${orderId}`);
     return await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
@@ -177,7 +188,6 @@ export class PaymentService {
   }
 
   private mapCartItemsToIyzipay(cartItems: any[]) {
-    // ... Mevcut helper kodunuz ...
     return cartItems.map((item) => {
       const itemTotalPrice = Number(item.product.price) * item.quantity;
       return {
@@ -192,7 +202,7 @@ export class PaymentService {
   }
 
   // =================================================================
-  // 4. PARA İADESİ / İPTALİ (CANCEL) - DÜZELTİLMİŞ HALİ
+  // 4. PARA İADESİ / İPTALİ (CANCEL)
   // =================================================================
   async refundPayment(
     paymentId: string,
@@ -202,26 +212,19 @@ export class PaymentService {
     console.log('🔄 SİPARİŞ İPTALİ/İADESİ BAŞLATILIYOR...');
     console.log('Payment ID (Main):', paymentId);
 
-    // API KEY Kontrolü
     const currentApiKey = this.configService.get<string>('IYZICO_API_KEY');
     if (!currentApiKey) {
       throw new InternalServerErrorException('Iyzico API Key eksik');
     }
 
-    // 🛑 DÜZELTME: 'refund' yerine 'cancel' kullanıyoruz.
-    // Çünkü elimizde sadece ana 'paymentId' var.
-    // 'refund' metodu 'paymentTransactionId' (ürün ID'si) ister, bizde o kayıtlı değil.
-    // 'cancel' metodu ise tüm sepeti iptal eder ve para iadesi yapar.
-
     const request = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: 'CancelRequest',
-      paymentId: paymentId, // Refund'da 'paymentTransactionId' idi, Cancel'da 'paymentId' olur.
+      paymentId: paymentId,
       ip: ip,
     };
 
     return new Promise((resolve, reject) => {
-      // DİKKAT: iyzipay.refund yerine iyzipay.cancel kullanıyoruz
       this.iyzipay.cancel.create(request, (err, result) => {
         if (err) {
           console.error('❌ Iyzico Kütüphane Hatası:', err);
