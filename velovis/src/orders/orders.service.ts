@@ -6,10 +6,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { PaymentService } from 'src/payment/payment.service'; // EKLENDİ
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { Prisma, OrderStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
 import { PERMISSIONS } from 'src/authorization/constants/permissions.constants';
-import Iyzipay from 'iyzipay';
 
 type AuthenticatedUser = {
   id: string;
@@ -18,16 +18,14 @@ type AuthenticatedUser = {
 
 @Injectable()
 export class OrdersService {
-  private iyzipay: any;
+  
+  // DİKKAT: Artık burada "private iyzipay" yok! 
+  // Tüm Iyzico işlemleri PaymentService üzerinden yapılacak.
 
-  constructor(private prisma: PrismaService) {
-    // Iyzico Yapılandırması
-    this.iyzipay = new Iyzipay({
-      apiKey: process.env.IYZICO_API_KEY!,
-      secretKey: process.env.IYZICO_SECRET_KEY!,
-      uri: 'https://sandbox-api.iyzipay.com', // Canlıya geçerken burası değişmeli
-    });
-  }
+  constructor(
+    private prisma: PrismaService,
+    private paymentService: PaymentService, // PaymentService'i buraya enjekte ettik
+  ) {}
 
   async create(userId: string) {
     return {
@@ -35,7 +33,9 @@ export class OrdersService {
     };
   }
 
-  // SADECE BENİM SİPARİŞLERİM (Herkes İçin)
+  // =================================================================
+  // 1. SADECE BENİM SİPARİŞLERİM
+  // =================================================================
   async findMyOrders(userId: string) {
     return this.prisma.order.findMany({
       where: { userId: userId },
@@ -52,7 +52,9 @@ export class OrdersService {
     });
   }
 
-  // TÜM SİPARİŞLER (Sadece Admin İçin)
+  // =================================================================
+  // 2. TÜM SİPARİŞLER (Admin)
+  // =================================================================
   async findAll() {
     return this.prisma.order.findMany({
       orderBy: { createdAt: 'desc' },
@@ -71,7 +73,9 @@ export class OrdersService {
     });
   }
 
-  // TEK SİPARİŞ DETAYI
+  // =================================================================
+  // 3. TEK SİPARİŞ DETAYI
+  // =================================================================
   async findOne(id: string, user: AuthenticatedUser) {
     const order = await this.prisma.order.findUnique({
       where: { id: id },
@@ -97,7 +101,9 @@ export class OrdersService {
     return order;
   }
 
-  // DURUM GÜNCELLEME
+  // =================================================================
+  // 4. DURUM GÜNCELLEME
+  // =================================================================
   async updateStatus(id: string, updateOrderDto: UpdateOrderDto) {
     const order = await this.prisma.order.findUnique({ where: { id } });
     if (!order) throw new NotFoundException('Sipariş bulunamadı.');
@@ -109,7 +115,9 @@ export class OrdersService {
     });
   }
 
-  // KULLANICI SİPARİŞ İPTALİ (Kargodan önce)
+  // =================================================================
+  // 5. KULLANICI SİPARİŞ İPTALİ (Kargodan önce)
+  // =================================================================
   async cancelOrder(orderId: string, userId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -154,9 +162,11 @@ export class OrdersService {
     });
   }
 
-  // ADMIN IYZICO İADE İŞLEMİ
+  // =================================================================
+  // 6. ADMIN IYZICO İADE İŞLEMİ (GÜNCELLENDİ)
+  // =================================================================
   async refundOrder(orderId: string) {
-    // Siparişi Bul
+    // A. Siparişi Bul
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -164,79 +174,59 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Sipariş bulunamadı.');
 
-    // Kontroller
+    // B. Kontroller
     if (order.status === OrderStatus.REFUNDED) {
       throw new BadRequestException('Bu sipariş zaten iade edilmiş.');
     }
 
-    // Seed verilerinde paymentId olmayabilir, kontrol ediyoruz
     if (!order.paymentId) {
+      console.error(`❌ HATA: Sipariş ${orderId} için Payment ID yok.`);
       throw new BadRequestException(
         'Bu siparişin Iyzico tarafında bir ödeme kaydı (paymentId) yok. İade yapılamaz.',
       );
     }
 
-    // Iyzico İstek Nesnesi
-    const request = {
-      locale: Iyzipay.LOCALE.TR,
-      conversationId: order.id,
-      paymentId: order.paymentId,
-      price: order.totalPrice.toString(),
-      ip: '85.34.78.112',
-      currency: Iyzipay.CURRENCY.TRY,
-    };
+    console.log(`🔄 İade İsteği (OrdersService): OrderID=${orderId}, PaymentID=${order.paymentId}`);
 
-    // Iyzico API Çağrısı
-    return new Promise((resolve, reject) => {
-      this.iyzipay.cancel.create(request, async (err, result) => {
-        if (err) {
-          return reject(
-            new InternalServerErrorException('Iyzico bağlantı hatası: ' + err),
-          );
-        }
+    try {
+      // C. Iyzico İadesi (ARTIK PAYMENT SERVICE ÜZERİNDEN YAPILIYOR)
+      // Bu sayede PaymentService içindeki doğru API anahtarlarını kullanacak.
+      const iyzicoResult = await this.paymentService.refundPayment(
+        order.paymentId,
+        order.totalPrice.toString()
+      );
 
-        if (result.status === 'success') {
-          // --- BAŞARILI İADE ---
-
-          // Transaction ile Stok ve Durum Güncelle
-          try {
-            const updatedOrder = await this.prisma.$transaction(async (tx) => {
-              // Stokları geri yükle
-              for (const item of order.items) {
-                if (item.productId) {
-                  await tx.product.update({
-                    where: { id: item.productId },
-                    data: { stockQuantity: { increment: item.quantity } },
-                  });
-                }
-              }
-
-              // Sipariş durumunu güncelle
-              return await tx.order.update({
-                where: { id: orderId },
-                data: { status: OrderStatus.REFUNDED },
-              });
+      // D. Veritabanı Güncellemesi (Status + Stok)
+      const updatedOrder = await this.prisma.$transaction(async (tx) => {
+        // Stokları geri yükle
+        for (const item of order.items) {
+          if (item.productId) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stockQuantity: { increment: item.quantity } },
             });
-
-            resolve({
-              message: 'İade işlemi başarıyla tamamlandı.',
-              iyzicoResult: result,
-              order: updatedOrder,
-            });
-          } catch (dbError) {
-            // Iyzico'da iade oldu ama DB'de hata olduysa kritik bir durumdur
-            // Loglanmalı
-            reject(
-              new InternalServerErrorException('Veritabanı güncelleme hatası'),
-            );
           }
-        } else {
-          // --- IYZICO HATASI ---
-          reject(
-            new BadRequestException('İade başarısız: ' + result.errorMessage),
-          );
         }
+
+        // Sipariş durumunu güncelle
+        return await tx.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.REFUNDED },
+        });
       });
-    });
+
+      console.log('✅ İade ve DB güncellemesi başarılı.');
+
+      return {
+        message: 'İade işlemi başarıyla tamamlandı.',
+        iyzicoResult: iyzicoResult,
+        order: updatedOrder,
+      };
+
+    } catch (error: any) {
+      console.error('❌ İade İşlemi Başarısız (OrdersService):', error);
+      // Kullanıcıya anlamlı hata dön
+      throw new BadRequestException(error.message || 'İade işlemi sırasında bir hata oluştu.');
+    }
   }
 }

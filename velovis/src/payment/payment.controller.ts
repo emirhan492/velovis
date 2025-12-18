@@ -3,6 +3,7 @@ import {
   Post,
   Req,
   Res,
+  Body,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ interface RequestWithUser extends Request {
     fullName?: string;
     firstName?: string;
     lastName?: string;
+    phoneNumber?: string;
   };
 }
 
@@ -29,10 +31,35 @@ export class PaymentController {
     private readonly cartItemsService: CartItemsService,
   ) {}
 
+  // =================================================================
+  // 1. ÖDEME BAŞLATMA
+  // =================================================================
   @UseGuards(JwtAuthGuard)
-  @Post('start')
-  async startPayment(@Req() req: RequestWithUser) {
+  @Post('initialize')
+  async initialize(
+    @Req() req: RequestWithUser,
+    @Body() body: { address: any },
+  ) {
     const user = req.user;
+    const { address } = body;
+
+    if (
+      !address ||
+      !address.contactName ||
+      address.contactName.trim() === '' ||
+      !address.city ||
+      address.city.trim() === '' ||
+      !address.district ||
+      address.district.trim() === '' ||
+      !address.phone ||
+      address.phone.trim() === '' ||
+      !address.address ||
+      address.address.trim() === ''
+    ) {
+      throw new BadRequestException(
+        'Lütfen tüm adres bilgilerini eksiksiz doldurun.',
+      );
+    }
 
     const cartItems = await this.cartItemsService.findAll(user.id);
 
@@ -50,68 +77,62 @@ export class PaymentController {
       user,
       cartItems,
       totalPrice,
+      address,
     );
 
     return result;
   }
 
+  // =================================================================
+  // 2. CALLBACK (DÜZELTİLDİ)
+  // =================================================================
   @Post('callback')
   async paymentCallback(@Req() req: any, @Res() res: Response) {
     const { token } = req.body;
 
-    // Token kontrolü
     if (!token) {
       console.error('❌ HATA: Iyzico Token göndermedi!');
       return res.redirect('http://localhost:3001/cart?error=token_not_found');
     }
 
     try {
-      // Iyzico'ya soruyoruz
       const result: any =
         await this.paymentService.retrievePaymentResult(token);
 
-      console.log('🔍 IYZICO SONUCU DETAYLARI:');
       console.log('--------------------------------------------------');
+      console.log('🔍 IYZICO CALLBACK GELDİ');
       console.log('Status:', result.status);
-      console.log('PaymentStatus:', result.paymentStatus);
-      console.log('BasketID (UserID):', result.basketId);
-      console.log('PaymentID:', result.paymentId); // Bunu loglarda görmek iyi olur
+      console.log('BasketId (Bizim Order ID):', result.basketId); // <-- Doğru ID burada
       console.log('--------------------------------------------------');
 
       if (result.status === 'success' && result.paymentStatus === 'SUCCESS') {
-        const userId = result.basketId;
-
-        // KRİTİK KONTROL
-        if (!userId) {
-          console.error('❌ KRİTİK HATA: User ID (basketId) boş geldi!');
-          throw new Error('Kullanıcı kimliği doğrulanamadı (basketId eksik).');
-        }
-
-        const paidPrice = parseFloat(result.paidPrice);
-
-        // Iyzico'dan gelen 'paymentId'yi servise iletiyoruz.
+        // 🛑 DÜZELTME BURADA YAPILDI 🛑
+        // conversationId yerine basketId kullanıyoruz.
+        // Çünkü startPayment metodunda basketId'ye pendingOrder.id'yi atamıştık.
+        const orderId = result.basketId;
         const paymentId = result.paymentId;
 
-        // Servise 3 parametre gönderiyoruz:
-        await this.paymentService.processSuccessfulPayment(
-          userId,
-          paidPrice,
-          paymentId,
-        );
+        if (!orderId) {
+          throw new Error('Sipariş ID (basketId) Iyzico yanıtında boş geldi.');
+        }
 
-        console.log(
-          `✅ Sipariş Başarıyla Oluşturuldu! UserID: ${userId}, PaymentID: ${paymentId}`,
-        );
+        // Siparişi onayla
+        await this.paymentService.completeOrder(orderId, paymentId);
+
+        console.log(`✅ İŞLEM BAŞARILI: Sipariş (${orderId}) onaylandı.`);
         return res.redirect('http://localhost:3001/payment/success');
       } else {
         const errorMessage = result.errorMessage || 'Ödeme başarısız oldu.';
-        const encodedError = encodeURIComponent(errorMessage);
-        return res.redirect(`http://localhost:3001/cart?error=${encodedError}`);
+        console.error('❌ IYZICO HATASI:', errorMessage);
+        return res.redirect(
+          `http://localhost:3001/cart?error=${encodeURIComponent(errorMessage)}`,
+        );
       }
     } catch (error: any) {
-      console.error('❌ SİPARİŞ OLUŞTURMA HATASI:', error);
-      const encodedError = encodeURIComponent(error.message || 'Sistem Hatası');
-      return res.redirect(`http://localhost:3001/cart?error=${encodedError}`);
+      console.error('❌ CALLBACK HATASI (SİSTEM):', error.message);
+      return res.redirect(
+        `http://localhost:3001/cart?error=${encodeURIComponent(error.message)}`,
+      );
     }
   }
 }

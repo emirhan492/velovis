@@ -29,16 +29,16 @@ enum OrderStatus {
 
 // 1. KULLANICI (USER)
 model User {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  fullName  String   
-  username  String   @unique
-  email     String   @unique
-  hashedPassword  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isActive  Boolean  @default(false)
+  id             String   @id @default(uuid())
+  firstName      String
+  lastName       String
+  fullName       String   
+  username       String   @unique
+  email          String   @unique
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(false)
 
   // İlişkiler
   comments            ProductComment[]
@@ -70,16 +70,16 @@ model Category {
 
 // 3. ÜRÜN (PRODUCT)
 model Product {
-  id               String  @id @default(uuid())
+  id               String   @id @default(uuid())
   name             String
-  slug             String  @unique
+  slug             String   @unique
   shortDescription String
   longDescription  String
   price            Float
   primaryPhotoUrl  String?
-  commentCount     Int     @default(0)
-  averageRating    Float   @default(0)
-  stockQuantity    Int     @default(0)
+  commentCount     Int      @default(0)
+  averageRating    Float    @default(0)
+  stockQuantity    Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -114,13 +114,13 @@ model ProductPhoto {
 
 // 5. ÜRÜN YORUMU (PRODUCT_COMMENT)
 model ProductComment {
-  id      String @id @default(uuid())
-  title   String?
-  content String?
-  rating  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedByAdmin Boolean @default(false)
+  id            String   @id @default(uuid())
+  title         String?
+  content       String?
+  rating        Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  editedByAdmin Boolean  @default(false)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -161,20 +161,27 @@ model CartItem {
   @@map("cart_items")
 }
 
-// 8. SİPARİŞ (ORDER)
+// 8. SİPARİŞ (ORDER) - GÜNCELLENDİ (Adres Bilgileri Eklendi)
 model Order {
-  id         String      @id @default(uuid())
-  totalPrice Float
-  status     OrderStatus @default(PENDING)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  totalPrice  Float
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
 
-  paymentId String?
+  paymentId   String?
 
-  items OrderItem[]
+  // 👇 YENİ EKLENEN ADRES ALANLARI 👇
+  contactName String?   // Teslim alacak kişi
+  city        String?   // İl
+  district    String?   // İlçe
+  phone       String?   // Telefon
+  address     String?   // Açık Adres
+
+  items       OrderItem[]
 
   @@map("orders")
 }
@@ -187,8 +194,8 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderId String
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -203,16 +210,16 @@ model PasswordResetToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  userId String
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
 }
 
 // 11. ROL (ROLE)
 model Role {
-  id    String @id @default(uuid())
-  name  String @unique
+  id          String @id @default(uuid())
+  name        String @unique
   
   users       UserRole[]
   permissions RolePermission[]
@@ -223,11 +230,11 @@ model Role {
 
 // 12. ROL-YETKİ EŞLEŞMESİ (ROLE_PERMISSION)
 model RolePermission {
-  roleId         String
-  permissionKey  String
-  message        String?
+  roleId        String
+  permissionKey String
+  message       String?
   
-  role           Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role          Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionKey])
   @@map("roles_permissions")

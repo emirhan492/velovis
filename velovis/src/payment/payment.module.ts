@@ -8,10 +8,11 @@ import { CartItemsModule } from 'src/cart-items/cart-items.module';
 
 @Module({
   imports: [
-    ConfigModule, 
+    ConfigModule,
     CartItemsModule, //
   ],
   controllers: [PaymentController],
   providers: [PaymentService],
+  exports: [PaymentService],
 })
 export class PaymentModule {}
