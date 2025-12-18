@@ -57,9 +57,9 @@ export class UsersService {
   async activateUser(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         isActive: true,
-        isEmailVerified: true // Kritik güncelleme: Mail doğrulandı olarak işaretle
+        isEmailVerified: true, // Kritik güncelleme: Mail doğrulandı olarak işaretle
       },
     });
   }
