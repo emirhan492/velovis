@@ -6,7 +6,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: [
+      'http://localhost:3001',
+      'https://velovis-frontend.vercel.app',
+      'https://veloviswear.com',
+      'https://www.veloviswear.com',
+    ],
+
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
