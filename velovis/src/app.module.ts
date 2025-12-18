@@ -33,15 +33,19 @@ import { PaymentModule } from './payment/payment.module';
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        // E-posta gönderim ayarları. Bunları .env dosyasından çekeceğiz.
+        // E-posta gönderim ayarları.
         transport: {
           host: configService.get('MAIL_HOST'),
-          port: configService.get('MAIL_PORT'),
-          secure: false,
-          requireTLS: true,
+          port: Number(configService.get('MAIL_PORT')), // String gelirse diye Number'a çevirdik
+          secure: false, // 587 veya 2525 portu için FALSE olmalı
           auth: {
-            user: configService.get('MAIL_USER'), // E-posta adresi
-            pass: configService.get('MAIL_PASSWORD'), // E-posta şifresi
+            user: configService.get('MAIL_USER'),
+            pass: configService.get('MAIL_PASSWORD'),
+          },
+          family: 4, // Render'da IPv6 sorununu önlemek için IPv4'e zorluyoruz.
+          tls: {
+            ciphers: 'SSLv3', // Eski protokol uyumluluğu
+            rejectUnauthorized: false, // Sertifika hatalarını (self-signed vs) yok sayar
           },
         },
         defaults: {
