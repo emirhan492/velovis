@@ -49,7 +49,7 @@ import { PaymentModule } from './payment/payment.module';
           },
         },
         defaults: {
-          from: `"Velovis E-Ticaret" <${configService.get('MAIL_FROM')}>`,
+          from: `"Velovis Wear" <${configService.get('MAIL_FROM')}>`,
         },
         template: {
           dir: join(__dirname, '..', 'templates'),
