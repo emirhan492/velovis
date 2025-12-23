@@ -20,13 +20,6 @@ export class PaymentService {
     const secretKey = this.configService.get<string>('IYZICO_SECRET_KEY');
     const baseUrl = this.configService.get<string>('IYZICO_BASE_URL');
 
-    // Başlangıçta ayarları kontrol edelim
-    console.log('--- IYZICO CONFIG KONTROL ---');
-    console.log('URL:', baseUrl);
-    console.log('API Key Var mı?:', apiKey ? 'EVET' : 'HAYIR');
-    console.log('Secret Key Var mı?:', secretKey ? 'EVET' : 'HAYIR');
-    console.log('-----------------------------');
-
     this.iyzipay = new Iyzipay({
       apiKey: apiKey,
       secretKey: secretKey,
@@ -47,6 +40,8 @@ export class PaymentService {
 
     const fullAddressForIyzico = `${addressData.district} / ${addressData.address}`;
 
+    // Sipariş Kalemlerini Veritabanına Kaydet (PENDING)
+    // Not: OrderItem tablosunda 'size' alanı olduğu için burası önemli
     const pendingOrder = await this.prisma.order.create({
       data: {
         userId: user.id,
@@ -62,6 +57,7 @@ export class PaymentService {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.product.price,
+            size: item.size, // <-- KRİTİK: Beden bilgisini OrderItem'a kaydet
           })),
         },
       },
@@ -74,12 +70,9 @@ export class PaymentService {
       else gsmNumber = '+90' + gsmNumber;
     }
 
-    // API URL'sini .env'den al (Backend Adresi)
     const apiUrl = this.configService.get<string>('API_URL');
     if (!apiUrl) {
-      throw new InternalServerErrorException(
-        'API_URL konfigürasyonu eksik. Ödeme başlatılamıyor.',
-      );
+      throw new InternalServerErrorException('API_URL eksik.');
     }
 
     const request = {
@@ -90,13 +83,11 @@ export class PaymentService {
       currency: Iyzipay.CURRENCY.TRY,
       basketId: pendingOrder.id,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
-      // DÜZELTİLDİ: Artık sadece canlı API_URL kullanılıyor
       callbackUrl: `${apiUrl}/api/payment/callback`,
       enabledInstallments: [1, 2, 3, 6, 9],
       buyer: {
         id: String(user.id),
-        name:
-          user.firstName || addressData.contactName.split(' ')[0] || 'Misafir',
+        name: user.firstName || 'Misafir',
         surname: user.lastName || 'Kullanıcı',
         gsmNumber: gsmNumber,
         email: user.email,
@@ -159,30 +150,45 @@ export class PaymentService {
   }
 
   // =================================================================
-  // 3. SİPARİŞİ TAMAMLA
+  // 3. SİPARİŞİ TAMAMLA (STOK DÜŞME BURADA) - GÜNCELLENDİ
   // =================================================================
   async completeOrder(orderId: string, paymentId: string) {
     console.log(`✅ Sipariş Onaylanıyor... OrderID: ${orderId}`);
+
     return await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: true },
       });
+
       if (!order) throw new NotFoundException('Sipariş yok');
       if (order.status === 'PAID') return order;
+
+      // 1. Durumu Güncelle
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: { status: 'PAID', paymentId: paymentId },
       });
+
+      // 2. Stokları Düş (ProductSize Tablosundan)
       for (const item of order.items) {
-        if (item.productId) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stockQuantity: { decrement: item.quantity } },
+        if (item.productId && item.size) {
+          // BEDEN VARSA ProductSize TABLOSUNDAN DÜŞ
+          await tx.productSize.update({
+            where: {
+              productId_size: {
+                productId: item.productId,
+                size: item.size,
+              },
+            },
+            data: { stock: { decrement: item.quantity } },
           });
         }
       }
+
+      // 3. Sepeti Temizle
       await tx.cartItem.deleteMany({ where: { userId: order.userId } });
+
       return updatedOrder;
     });
   }
@@ -192,7 +198,7 @@ export class PaymentService {
       const itemTotalPrice = Number(item.product.price) * item.quantity;
       return {
         id: item.product.id,
-        name: item.product.name,
+        name: `${item.product.name} (${item.size})`, // Iyzico tarafında beden görünsün
         category1: item.product.category?.name || 'Genel',
         category2: 'Giyim',
         itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
@@ -209,14 +215,6 @@ export class PaymentService {
     price: string,
     ip: string = '85.34.78.112',
   ) {
-    console.log('🔄 SİPARİŞ İPTALİ/İADESİ BAŞLATILIYOR...');
-    console.log('Payment ID (Main):', paymentId);
-
-    const currentApiKey = this.configService.get<string>('IYZICO_API_KEY');
-    if (!currentApiKey) {
-      throw new InternalServerErrorException('Iyzico API Key eksik');
-    }
-
     const request = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: 'CancelRequest',
@@ -226,19 +224,10 @@ export class PaymentService {
 
     return new Promise((resolve, reject) => {
       this.iyzipay.cancel.create(request, (err, result) => {
-        if (err) {
-          console.error('❌ Iyzico Kütüphane Hatası:', err);
-          reject(new InternalServerErrorException(err));
+        if (err || result.status === 'failure') {
+          reject(new InternalServerErrorException(result?.errorMessage || err));
         } else {
-          console.log('ℹ️ Iyzico Cevabı:', result.status);
-
-          if (result.status === 'failure') {
-            console.error('❌ Iyzico Başarısız:', result.errorMessage);
-            reject(new InternalServerErrorException(result.errorMessage));
-          } else {
-            console.log('✅ Sipariş İptali/İadesi Başarılı!');
-            resolve(result);
-          }
+          resolve(result);
         }
       });
     });

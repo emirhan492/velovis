@@ -7,7 +7,20 @@ import {
   IsString,
   IsUUID,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+// Yardımcı Sınıf: Tek bir bedenin yapısını tanımlıyoruz
+class ProductSizeDto {
+  @IsString()
+  @IsNotEmpty()
+  size: string; // Örn: "S", "M", "42"
+
+  @IsInt()
+  @Min(0)
+  stock: number; // Örn: 5, 10
+}
 
 export class CreateProductDto {
   @IsString()
@@ -34,10 +47,11 @@ export class CreateProductDto {
   @IsNotEmpty()
   categoryId: string;
 
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  stockQuantity?: number;
+  // ARTIK stockQuantity YOK. YERİNE SIZES VAR:
+  @IsArray()
+  @ValidateNested({ each: true }) // Dizinin içindeki her elemanı kontrol et
+  @Type(() => ProductSizeDto) // Gelen veriyi ProductSizeDto sınıfına çevir
+  sizes: ProductSizeDto[];
 
   // Ana Fotoğraf URL'si
   @IsString()

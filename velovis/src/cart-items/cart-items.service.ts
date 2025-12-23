@@ -8,7 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
-// Hangi alanları döndüreceğimizi tek bir yerde tanımlayalım
+// Ürün detaylarını çekerken artık toplam stoğu değil, genel bilgileri alıyoruz.
 const includeProductDetails = {
   product: {
     select: {
@@ -16,7 +16,7 @@ const includeProductDetails = {
       name: true,
       price: true,
       primaryPhotoUrl: true,
-      stockQuantity: true,
+      // stockQuantity: true, // <-- ARTIK BU YOK, KALDIRDIK
     },
   },
 };
@@ -31,6 +31,7 @@ export class CartItemsService {
   async addOrUpdateItem(userId: string, createCartItemDto: CreateCartItemDto) {
     const { productId, quantity, size } = createCartItemDto;
 
+    // 1. Önce Ürün Var mı?
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -39,28 +40,49 @@ export class CartItemsService {
       throw new NotFoundException('Ürün bulunamadı.');
     }
 
-    // BEDEN İLE BİRLİKTE KONTROL EDİYORUZ
+    if (!size) {
+      throw new BadRequestException('Beden seçimi zorunludur.');
+    }
+
+    // 2. Seçilen Bedenin Stoğunu Kontrol Et (ProductSize Tablosundan)
+    const productSize = await this.prisma.productSize.findUnique({
+      where: {
+        productId_size: {
+          productId: productId,
+          size: size,
+        },
+      },
+    });
+
+    if (!productSize) {
+      throw new BadRequestException('Bu ürün için seçilen beden bulunamadı.');
+    }
+
+    // 3. Sepette Bu Ürün + Bu Beden Var mı?
     const existingCartItem = await this.prisma.cartItem.findUnique({
       where: {
         userId_productId_size: {
           userId: userId,
           productId: productId,
-          size: size || '',
+          size: size,
         },
       },
     });
 
     if (existingCartItem) {
-      // ÜRÜN (AYNI BEDEN) ZATEN SEPETTE VARSA -> MİKTARI GÜNCELLE
+      // --- GÜNCELLEME SENARYOSU ---
       const newQuantity = existingCartItem.quantity + quantity;
 
-      if (newQuantity > product.stockQuantity) {
-        const availableToAdd =
-          product.stockQuantity - existingCartItem.quantity;
+      // Stok Kontrolü (Beden Stoğuna Göre)
+      if (newQuantity > productSize.stock) {
+        const availableToAdd = Math.max(
+          0,
+          productSize.stock - existingCartItem.quantity,
+        );
         const message =
           availableToAdd > 0
-            ? `Stokta yeterli ürün yok. Sepetinize en fazla ${availableToAdd} adet daha ekleyebilirsiniz.`
-            : `Stokta yeterli ürün yok. Bu ürünün tamamı (${product.stockQuantity} adet) zaten sepetinizde.`;
+            ? `Stok sınırı! Bu bedenden en fazla ${availableToAdd} adet daha ekleyebilirsiniz.`
+            : `Stok sınırı! Bu bedenden (${size}) zaten maksimum adeti sepetinizde.`;
         throw new BadRequestException(message);
       }
 
@@ -70,10 +92,10 @@ export class CartItemsService {
         include: includeProductDetails,
       });
     } else {
-      // ÜRÜN (BU BEDENDE) SEPETTE YOKSA -> YENİ KAYIT OLUŞTUR
-      if (quantity > product.stockQuantity) {
+      // --- YENİ EKLEME SENARYOSU ---
+      if (quantity > productSize.stock) {
         throw new BadRequestException(
-          `Stokta yeterli ürün yok. Bu üründen en fazla ${product.stockQuantity} adet ekleyebilirsiniz.`,
+          `Stok yetersiz. Bu bedenden (${size}) sadece ${productSize.stock} adet kaldı.`,
         );
       }
 
@@ -112,6 +134,7 @@ export class CartItemsService {
   ) {
     const { quantity: newQuantity } = updateCartItemDto;
 
+    // 1. Sepet Kalemini Bul
     const cartItem = await this.prisma.cartItem.findUnique({
       where: { id: cartItemId },
     });
@@ -124,16 +147,35 @@ export class CartItemsService {
       throw new ForbiddenException('Bu işlem için yetkiniz yok.');
     }
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: cartItem.productId },
+    // 2. O anki Bedenin Stoğunu Kontrol Et
+    // Not: cartItem.size null olabilir diye kontrol ekliyoruz ama normalde olmamalı
+    if (!cartItem.size) {
+      // Eski veri kalıntısı varsa diye güvenlik
+      return this.prisma.cartItem.update({
+        where: { id: cartItemId },
+        data: { quantity: newQuantity },
+        include: includeProductDetails,
+      });
+    }
+
+    const productSize = await this.prisma.productSize.findUnique({
+      where: {
+        productId_size: {
+          productId: cartItem.productId,
+          size: cartItem.size,
+        },
+      },
     });
 
-    if (!product) {
-      throw new NotFoundException('Sepetinizdeki bu ürün artık mevcut değil.');
+    // Eğer beden veritabanından silindiyse hata verelim
+    if (!productSize) {
+      throw new NotFoundException('Bu ürünün bedeni artık stoklarda yok.');
     }
-    if (newQuantity > product.stockQuantity) {
+
+    // 3. Stok Kontrolü
+    if (newQuantity > productSize.stock) {
       throw new BadRequestException(
-        `Stokta yeterli ürün yok. Kalan stok: ${product.stockQuantity}`,
+        `Stok yetersiz. Bu bedenden (${cartItem.size}) kalan stok: ${productSize.stock}`,
       );
     }
 

@@ -29,18 +29,29 @@ export class ProductsService {
   }
 
   // =================================================================
-  // YENİ ÜRÜN EKLEME
+  // YENİ ÜRÜN EKLEME (GÜNCELLENDİ)
   // =================================================================
   async create(createProductDto: CreateProductDto) {
-    const { otherPhotos, ...productData } = createProductDto;
+    // DTO'dan sizes ve fotoları ayırıyoruz
+    const { otherPhotos, sizes, ...productData } = createProductDto;
 
     await this.validateCategory(createProductDto.categoryId);
 
     try {
       const product = await this.prisma.product.create({
-        data: productData,
+        data: {
+          ...productData,
+          // YENİ KISIM: Bedenleri burada oluşturuyoruz
+          sizes: {
+            create: sizes.map((s) => ({
+              size: s.size,
+              stock: s.stock,
+            })),
+          },
+        },
       });
 
+      // Diğer fotoğrafları ekleme
       if (otherPhotos && otherPhotos.length > 0) {
         const photoData = otherPhotos.map((url, index) => ({
           productId: product.id,
@@ -55,6 +66,7 @@ export class ProductsService {
         });
       }
 
+      // Ana fotoğrafı ekleme
       if (productData.primaryPhotoUrl) {
         await this.prisma.productPhoto.create({
           data: {
@@ -80,7 +92,7 @@ export class ProductsService {
   }
 
   // =================================================================
-  // FIND ALL (LİSTELEME)
+  // FIND ALL (LİSTELEME) (GÜNCELLENDİ)
   // =================================================================
   async findAll(query: QueryProductDto) {
     const { category_id, min_price, max_price, min_rating, sort } = query;
@@ -126,18 +138,25 @@ export class ProductsService {
       orderBy: orderBy,
       include: {
         category: true,
+        // Listeleme sayfasında bedenleri de görmek isteyebilirsin (Stok var mı yok mu diye)
+        sizes: {
+          orderBy: { size: 'asc' }, // S, M, L sırasına göre gelmeyebilir ama alfabetik gelir
+        },
       },
     });
   }
 
   // =================================================================
-  // FIND ONE (DETAY) - Yorumlar ve Fotoğraflar Dahil
+  // FIND ONE (DETAY) (GÜNCELLENDİ)
   // =================================================================
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
         category: true,
+        sizes: {
+          orderBy: { id: 'asc' }, // Eklenme sırasına göre getir
+        },
         photos: {
           orderBy: {
             order: 'asc',
@@ -161,23 +180,45 @@ export class ProductsService {
   }
 
   // =================================================================
-  // GÜNCELLEME
+  // GÜNCELLEME (GÜNCELLENDİ)
   // =================================================================
   async update(id: string, updateProductDto: UpdateProductDto) {
     await this.findOne(id);
 
-    const { otherPhotos, ...productData } = updateProductDto;
+    // Update DTO'sunda "sizes" alanı opsiyonel olarak gelebilir.
+    // TypeScript uyarısı almamak için any kullanıyoruz veya DTO'yu tam tanımlamak lazım.
+    // Burada mantık şudur: sizes dizisi geldiyse, eski stokları silip yenilerini yazarız.
+    const { otherPhotos, sizes, ...productData } = updateProductDto as any;
 
     if (updateProductDto.categoryId) {
       await this.validateCategory(updateProductDto.categoryId);
     }
 
     try {
+      // 1. Önce Ürün Bilgilerini Güncelle
       const product = await this.prisma.product.update({
         where: { id },
         data: productData,
       });
 
+      // 2. Eğer Beden Güncellemesi Geldiyse
+      if (sizes) {
+        // Eski bedenleri sil
+        await this.prisma.productSize.deleteMany({
+          where: { productId: id },
+        });
+
+        // Yeni bedenleri ekle
+        await this.prisma.productSize.createMany({
+          data: sizes.map((s) => ({
+            productId: id,
+            size: s.size,
+            stock: s.stock,
+          })),
+        });
+      }
+
+      // 3. Fotoğraf Güncellemesi
       if (otherPhotos) {
         await this.prisma.productPhoto.deleteMany({
           where: {
@@ -201,7 +242,7 @@ export class ProductsService {
         }
       }
 
-      return product;
+      return this.findOne(id); // Güncel halini döndür
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -224,9 +265,7 @@ export class ProductsService {
     });
   }
 
-  // =================================================================
-  // YORUM EKLEME
-  // =================================================================
+  // ... (Yorum fonksiyonları aynen kalabilir)
   async addComment(
     userId: string,
     productId: string,
@@ -249,9 +288,6 @@ export class ProductsService {
     });
   }
 
-  // =================================================================
-  // YORUM SİLME
-  // =================================================================
   async deleteComment(user: any, commentId: string) {
     const comment = await this.prisma.productComment.findUnique({
       where: { id: commentId },
@@ -271,10 +307,11 @@ export class ProductsService {
     });
   }
 
-  // =================================================================
-  // YORUM DÜZENLEME
-  // =================================================================
-  async updateComment(user: any, commentId: string, data: { content: string; rating: number }) {
+  async updateComment(
+    user: any,
+    commentId: string,
+    data: { content: string; rating: number },
+  ) {
     const comment = await this.prisma.productComment.findUnique({
       where: { id: commentId },
     });

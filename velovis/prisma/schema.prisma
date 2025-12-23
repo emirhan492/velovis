@@ -13,7 +13,6 @@ datasource db {
 // ENUM'LAR (Sabit Listeler)
 // =================================================================
 
-// Sipariş Durumları
 enum OrderStatus {
   PENDING
   PAID
@@ -32,18 +31,14 @@ model User {
   id             String   @id @default(uuid())
   firstName      String
   lastName       String
-  fullName       String   
+  fullName       String
   username       String   @unique
   email          String   @unique
   hashedPassword String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   
-  // GÜNCELLENEN ALANLAR:
-  // isActive: Hesap banlı mı? (Default: true = Açık/Banlı Değil)
   isActive        Boolean  @default(true) 
-  
-  // isEmailVerified: Mail onaylandı mı? (Default: false = Onaysız)
   isEmailVerified Boolean  @default(false)
 
   // İlişkiler
@@ -53,8 +48,7 @@ model User {
   orders              Order[]
   passwordResetTokens PasswordResetToken[]
   roles               UserRole[]
-
-  hashedRefreshToken String?
+  hashedRefreshToken  String?
 
   @@map("users")
 }
@@ -68,7 +62,6 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // İlişkiler
   products Product[]
 
   @@map("categories")
@@ -85,7 +78,9 @@ model Product {
   primaryPhotoUrl  String?
   commentCount     Int      @default(0)
   averageRating    Float    @default(0)
-  stockQuantity    Int      @default(0)
+  
+  // stockQuantity Int @default(0) <-- BU SATIR ARTIK YOK (Bedenlerde tutulacak)
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -97,8 +92,23 @@ model Product {
   comments   ProductComment[]
   cartItems  CartItem[]
   orderItems OrderItem[]
+  sizes      ProductSize[] // YENİ İLİŞKİ: Bedenler
 
   @@map("products")
+}
+
+// YENİ MODEL: ÜRÜN BEDEN & STOK (PRODUCT_SIZE)
+model ProductSize {
+  id        String   @id @default(uuid()) // UUID daha güvenli
+  size      String   // Örn: "S", "M", "L", "42"
+  stock     Int      @default(0)
+  
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Aynı ürünün aynı bedeni iki kere eklenemez (Örn: Bir üründe iki tane 'M' olamaz)
+  @@unique([productId, size])
+  @@map("product_sizes")
 }
 
 // 4. ÜRÜN FOTOĞRAFI (PRODUCT_PHOTO)
@@ -169,23 +179,21 @@ model CartItem {
 
 // 8. SİPARİŞ (ORDER)
 model Order {
-  id           String      @id @default(uuid())
-  totalPrice   Float
-  status       OrderStatus @default(PENDING)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  totalPrice  Float
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  userId       String
-  user         User        @relation(fields: [userId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
 
-  paymentId    String?
-
-  // ADRES BİLGİLERİ
-  contactName String?   // Teslim alacak kişi
-  city        String?   // İl
-  district    String?   // İlçe
-  phone       String?   // Telefon
-  address     String?   // Açık Adres
+  paymentId   String?
+  contactName String?
+  city        String?
+  district    String?
+  phone       String?
+  address     String?
 
   items       OrderItem[]
 
@@ -197,6 +205,7 @@ model OrderItem {
   id        String   @id @default(uuid())
   quantity  Int
   unitPrice Float
+  size      String?  // YENİ ALAN: Hangi bedenden sipariş edildi?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -209,7 +218,7 @@ model OrderItem {
   @@map("order_items")
 }
 
-// 10. ŞİFRE SIFIRLAMA TOKEN'I (PASSWORD_RESET_TOKEN)
+// 10. ŞİFRE SIFIRLAMA TOKEN'I
 model PasswordResetToken {
   id        String   @id @default(uuid())
   token     String   @unique
@@ -224,32 +233,29 @@ model PasswordResetToken {
 
 // 11. ROL (ROLE)
 model Role {
-  id   String @id @default(uuid())
-  name String @unique
-  
+  id          String @id @default(uuid())
+  name        String @unique
   users       UserRole[]
   permissions RolePermission[]
 
   @@map("roles")
 }
 
-// 12. ROL-YETKİ EŞLEŞMESİ (ROLE_PERMISSION)
+// 12. ROL-YETKİ EŞLEŞMESİ
 model RolePermission {
   roleId        String
   permissionKey String
   message       String?
-  
   role          Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionKey])
   @@map("roles_permissions")
 }
 
-// 13. KULLANICI-ROL EŞLEŞMESİ (USER_ROLE)
+// 13. KULLANICI-ROL EŞLEŞMESİ
 model UserRole {
   userId String
   roleId String
-
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 

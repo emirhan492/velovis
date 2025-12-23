@@ -125,6 +125,7 @@ async function main() {
       email: 'veloviswear1@gmail.com',
       hashedPassword: hashedPassword,
       isActive: true,
+      isEmailVerified: true,
       fullName: 'Admin',
     },
   });
