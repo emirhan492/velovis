@@ -16,6 +16,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
 import { PaymentModule } from './payment/payment.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -36,16 +37,16 @@ import { PaymentModule } from './payment/payment.module';
         // E-posta gönderim ayarları.
         transport: {
           host: configService.get('MAIL_HOST'),
-          port: Number(configService.get('MAIL_PORT')), // String gelirse diye Number'a çevirdik
-          secure: false, // 587 veya 2525 portu için FALSE olmalı
+          port: Number(configService.get('MAIL_PORT')),
+          secure: false,
           auth: {
             user: configService.get('MAIL_USER'),
             pass: configService.get('MAIL_PASSWORD'),
           },
-          family: 4, // Render'da IPv6 sorununu önlemek için IPv4'e zorluyoruz.
+          family: 4, 
           tls: {
-            ciphers: 'SSLv3', // Eski protokol uyumluluğu
-            rejectUnauthorized: false, // Sertifika hatalarını (self-signed vs) yok sayar
+            ciphers: 'SSLv3', 
+            rejectUnauthorized: false,
           },
         },
         defaults: {
@@ -62,6 +63,7 @@ import { PaymentModule } from './payment/payment.module';
       inject: [ConfigService],
     }),
     PaymentModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,9 +1,9 @@
-// 1. Prisma Client
+// Prisma Client
 generator client {
   provider = "prisma-client-js"
 }
 
-// 2. Veritabanı Bağlantısı
+// Veritabanı Bağlantısı
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -37,9 +37,9 @@ model User {
   hashedPassword String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  
-  isActive        Boolean  @default(true) 
-  isEmailVerified Boolean  @default(false)
+
+  isActive        Boolean @default(true)
+  isEmailVerified Boolean @default(false)
 
   // İlişkiler
   comments            ProductComment[]
@@ -69,20 +69,18 @@ model Category {
 
 // 3. ÜRÜN (PRODUCT)
 model Product {
-  id               String   @id @default(uuid())
+  id               String  @id @default(uuid())
   name             String
-  slug             String   @unique
+  slug             String  @unique
   shortDescription String
   longDescription  String
   price            Float
   primaryPhotoUrl  String?
-  commentCount     Int      @default(0)
-  averageRating    Float    @default(0)
-  
-  // stockQuantity Int @default(0) <-- BU SATIR ARTIK YOK (Bedenlerde tutulacak)
+  commentCount     Int     @default(0)
+  averageRating    Float   @default(0)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // İlişkiler
   categoryId String
@@ -92,21 +90,20 @@ model Product {
   comments   ProductComment[]
   cartItems  CartItem[]
   orderItems OrderItem[]
-  sizes      ProductSize[] // YENİ İLİŞKİ: Bedenler
+  sizes      ProductSize[]
 
   @@map("products")
 }
 
-// YENİ MODEL: ÜRÜN BEDEN & STOK (PRODUCT_SIZE)
+// ÜRÜN BEDEN & STOK
 model ProductSize {
-  id        String   @id @default(uuid()) // UUID daha güvenli
-  size      String   // Örn: "S", "M", "L", "42"
-  stock     Int      @default(0)
-  
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id    String @id @default(uuid())
+  size  String
+  stock Int    @default(0)
 
-  // Aynı ürünün aynı bedeni iki kere eklenemez (Örn: Bir üründe iki tane 'M' olamaz)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@unique([productId, size])
   @@map("product_sizes")
 }
@@ -167,26 +164,31 @@ model CartItem {
   updatedAt DateTime @updatedAt
   size      String?
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId, size])
   @@map("cart_items")
 }
 
-// 8. SİPARİŞ (ORDER)
+// 8. SİPARİŞ (ORDER) 
 model Order {
-  id          String      @id @default(uuid())
-  totalPrice  Float
-  status      OrderStatus @default(PENDING)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         String      @id @default(uuid())
+  totalPrice Float
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  guestName    String?
+  guestEmail   String?
+  guestPhone   String?
+  guestAddress String?
 
   paymentId   String?
   contactName String?
@@ -195,7 +197,7 @@ model Order {
   phone       String?
   address     String?
 
-  items       OrderItem[]
+  items OrderItem[]
 
   @@map("orders")
 }
@@ -205,12 +207,12 @@ model OrderItem {
   id        String   @id @default(uuid())
   quantity  Int
   unitPrice Float
-  size      String?  // YENİ ALAN: Hangi bedenden sipariş edildi?
+  size      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -218,23 +220,23 @@ model OrderItem {
   @@map("order_items")
 }
 
-// 10. ŞİFRE SIFIRLAMA TOKEN'I
+// 10. ŞİFRE SIFIRLAMA
 model PasswordResetToken {
   id        String   @id @default(uuid())
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
 }
 
 // 11. ROL (ROLE)
 model Role {
-  id          String @id @default(uuid())
-  name        String @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   users       UserRole[]
   permissions RolePermission[]
 
@@ -246,7 +248,7 @@ model RolePermission {
   roleId        String
   permissionKey String
   message       String?
-  role          Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role          Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionKey])
   @@map("roles_permissions")
@@ -256,8 +258,8 @@ model RolePermission {
 model UserRole {
   userId String
   roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@map("users_roles")
